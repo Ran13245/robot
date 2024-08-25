@@ -119,7 +119,7 @@ namespace WHU_ROBOT{
 		controller_ptr->feedCurrent(_odomState);
 
 
-		ROS_INFO("Received Odometry");
+		// ROS_INFO("Received Odometry");
 		// ROS_INFO("  time (ns): %llu", static_cast<unsigned long long>(time_ns));
 		// ROS_INFO("  position: [x=%.3f, y=%.3f, z=%.3f]",
 		// 	base_pos.x(), base_pos.y(), base_pos.z());
@@ -176,7 +176,7 @@ namespace WHU_ROBOT{
 		controller_ptr->feedTarget(_odomState);
 
 
-		ROS_INFO("Received target");
+		// ROS_INFO("Received target");
 		// ROS_INFO("  time (ns): %llu", static_cast<unsigned long long>(time_ns));
 		// ROS_INFO("  position: [x=%.3f, y=%.3f, z=%.3f]",
 		// 	base_pos.x(), base_pos.y(), base_pos.z());

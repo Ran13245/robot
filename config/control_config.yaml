@@ -4,17 +4,17 @@ target_odom_topic: /robot/targetOdom
 ctrl_topic: /ctrl_cmd
 
 #ctrl
-delta_distance: 0.01
-delta_yaw: 0.1
+delta_distance: 0.05
+delta_yaw: 10.0
 brake_distance: 10.0
 
-p_vx: 0.1
-p_vy: 0.1
-p_wz: 0.1
+p_vx: 1
+p_vy: 1
+p_wz: 1
 
-d_vx: 0.1
-d_vy: 0.1
-d_wz: 0.1
+d_vx: 0.0
+d_vy: 0.0
+d_wz: 0.0
 
 max_v: 1.0
 max_w: 30.0

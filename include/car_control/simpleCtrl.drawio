@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="dLbpwWId31D5CVljBKBY" name="第 1 页">
-        <mxGraphModel dx="2037" dy="791" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="1836" dy="414" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -74,7 +74,7 @@
                 <mxCell id="49" style="edgeStyle=none;html=1;entryX=0.216;entryY=0.007;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="31" target="47" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="51" value="timetick [ (! if_err_xy) &amp;amp;&amp;amp; (! if_err_yaw)]" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="49" vertex="1" connectable="0">
+                <mxCell id="51" value="timetick [(!if_stop_flag)&amp;amp;&amp;amp; (! if_err_xy) &amp;amp;&amp;amp; (! if_err_yaw)]" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="49" vertex="1" connectable="0">
                     <mxGeometry x="-0.013" y="1" relative="1" as="geometry">
                         <mxPoint as="offset"/>
                     </mxGeometry>
@@ -142,16 +142,16 @@
                         <mxPoint x="67" y="12" as="offset"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="78" value="unready" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=160;" vertex="1" parent="1">
+                <mxCell id="78" value="unready" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=160;" parent="1" vertex="1">
                     <mxGeometry x="-260" y="870" width="330" height="120" as="geometry"/>
                 </mxCell>
-                <mxCell id="79" value="&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;timetick [(!if_get_current) || (! if_get_target) ] / send_cmd();&lt;/span&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                <mxCell id="79" value="&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;timetick [(!if_get_current) || (! if_get_target) ] / send_cmd();&lt;/span&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
                     <mxGeometry x="-255" y="918" width="330" height="30" as="geometry"/>
                 </mxCell>
-                <mxCell id="80" style="edgeStyle=none;html=1;entryX=0.011;entryY=0.276;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="78" target="46">
+                <mxCell id="80" style="edgeStyle=none;html=1;entryX=0.011;entryY=0.276;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="78" target="46" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="81" value="timetick [&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 12px; background-color: rgb(251, 251, 251);&quot;&gt;if_get_current &amp;amp;&amp;amp; if_get_target&lt;/span&gt;]" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="80">
+                <mxCell id="81" value="timetick [&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 12px; background-color: rgb(251, 251, 251);&quot;&gt;if_get_current &amp;amp;&amp;amp; if_get_target&lt;/span&gt;]" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="80" vertex="1" connectable="0">
                     <mxGeometry x="-0.39" y="-2" relative="1" as="geometry">
                         <mxPoint as="offset"/>
                     </mxGeometry>

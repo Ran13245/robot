@@ -25,7 +25,7 @@ namespace WHU_ROBOT{
 		}
 
 		//------------------------const-----------
-		static constexpr float __vx_when_spin = 0.01;
+		static constexpr float __vx_when_spin = 0.0;
 		//-----------------------obj-------------
 		ctl_param_t param;
 		PID pid_vx;
@@ -50,7 +50,7 @@ namespace WHU_ROBOT{
 
 		void generate_cmd(uint8_t mode, float vx, float vy, float wz){
 			static uint32_t __cnt = 0;
-			CarState rtn;
+			CarState rtn{};
 			if(mode == 6){//4T4D
 				rtn.mode = 6;
 				
@@ -91,69 +91,104 @@ namespace WHU_ROBOT{
 		struct terminate {};
 
 		//guard
-		auto if_get_current = [](ControlInterface& interface){
-			return interface.__flag_get_current;
+		struct IfGetCurrentGuard {
+			bool operator()(WHU_ROBOT::ControlInterface& interface) const noexcept {
+				return interface.__flag_get_current;
+			}
 		};
+		auto if_get_current = IfGetCurrentGuard{};
 
-		auto if_get_target = [](ControlInterface& interface){
-			return interface.__flag_get_target;
+		struct IfGetTargetGuard {
+			bool operator()(WHU_ROBOT::ControlInterface& interface) const noexcept {
+				return interface.__flag_get_target;
+			}
 		};
+		auto if_get_target = IfGetTargetGuard{};
 
-		auto if_stop_flag = [](ControlInterface& interface){
-			return !interface.enable_control;
+		struct IfStopFlagGuard {
+			bool operator()(WHU_ROBOT::ControlInterface& interface) const noexcept {
+				return !interface.enable_control;
+			}
 		};
+		auto if_stop_flag = IfStopFlagGuard{};
 
-		auto if_err_yaw = [](ControlInterface& interface) {
-			return std::abs(interface.current_yaw - interface.target_yaw) >= interface.param.delta_yaw;
+		struct IfErrYawGuard {
+			bool operator()(WHU_ROBOT::ControlInterface& interface) const noexcept {
+				return std::abs(interface.current_yaw - interface.target_yaw) 
+					>= interface.param.delta_yaw;
+			}
 		};
+		auto if_err_yaw = IfErrYawGuard{};
 
-		auto if_err_xy = [](ControlInterface& interface){
-			return euclideanDistance(interface.current_pos, interface.target_pos) 
-				>= interface.param.delta_distance;
+		struct IfErrXYGuard {
+			bool operator()(WHU_ROBOT::ControlInterface& interface) const noexcept {
+				return euclideanDistance(interface.current_pos, interface.target_pos) 
+					>= interface.param.delta_distance;
+			}
 		};
+		auto if_err_xy = IfErrXYGuard{};
 
-		auto if_unhealthy = [](ControlInterface& interface){
-			return euclideanDistance(interface.current_pos, interface.target_pos) 
-				>= interface.param.brake_distance;
+		struct IfUnhealthyGuard {
+			bool operator()(WHU_ROBOT::ControlInterface& interface) const noexcept {
+				return euclideanDistance(interface.current_pos, interface.target_pos) 
+					>= interface.param.brake_distance;
+			}
 		};
+		auto if_unhealthy = IfUnhealthyGuard{};
+
 
 		//action
-		auto action_stop = [](ControlInterface& interface){
-			interface.generate_cmd(1, 0,0,0);
+		struct ActionStop {
+			void operator()(WHU_ROBOT::ControlInterface& interface) noexcept {
+				interface.generate_cmd(1, 0,0,0);
+			}
 		};
+		auto action_stop = ActionStop{};
 
-		auto action_free = [](ControlInterface& interface){
-			interface.generate_cmd(2, 0,0,0);
+		struct ActionFree {
+			void operator()(WHU_ROBOT::ControlInterface& interface) noexcept {
+				interface.generate_cmd(2, 0,0,0);
+			}
 		};
+		auto action_free = ActionFree{};
 
-		auto action_yaw = [](const auto& event, ControlInterface& interface){
-			const auto& e = static_cast<const timetick&>(event);
-			float wz = interface.pid_wz.update(
-				interface.target_yaw, 
-				interface.current_yaw, 
-				e.dt);
-			interface.generate_cmd(6, 0,0,wz);
+		struct ActionYaw {
+			void operator()(const auto& event, WHU_ROBOT::ControlInterface& interface) noexcept {
+				const auto& e = static_cast<const timetick&>(event);
+				float wz = interface.pid_wz.update(
+					interface.target_yaw, 
+					interface.current_yaw, 
+					e.dt);
+				interface.generate_cmd(6, 0,0,wz);
+			}
 		};
+		auto action_yaw = ActionYaw{};
 
-		auto action_xy = [](const auto& event, ControlInterface& interface){
-			const auto& e = static_cast<const timetick&>(event);
-			float vx = interface.pid_vx.update(
-				interface.target_pos.x(), 
-				interface.current_pos.x(), 
-				e.dt);
-			float vy = interface.pid_vy.update(
-				interface.target_pos.y(), 
-				interface.current_pos.y(), 
-				e.dt);
+		struct ActionXY {
+			void operator()(const auto& event, WHU_ROBOT::ControlInterface& interface) noexcept {
+				const auto& e = static_cast<const timetick&>(event);
+				float vx = interface.pid_vx.update(
+					interface.target_pos.x(), 
+					interface.current_pos.x(), 
+					e.dt);
+				float vy = interface.pid_vy.update(
+					interface.target_pos.y(), 
+					interface.current_pos.y(), 
+					e.dt);
 
-			interface.generate_cmd(8, vx,vy,0);
+				interface.generate_cmd(8, vx,vy,0);
+			}
 		};
+		auto action_xy = ActionXY{};
 
-		auto action_log = [](ControlInterface& interface){
-			std::cout<<"\033[31m" << "action_log:" << "\033[0m" << std::endl;
-			std::cout<<"current position: "<< interface.current_pos.transpose() <<std::endl;
-			std::cout<<"target position: "<< interface.target_pos.transpose() <<std::endl;
+		struct ActionLog {
+			void operator()(WHU_ROBOT::ControlInterface& interface) noexcept {
+				std::cout<<"\033[31m" << "action_log:" << "\033[0m" << std::endl;
+				std::cout<<"current position: "<< interface.current_pos.transpose() <<std::endl;
+				std::cout<<"target position: "<< interface.target_pos.transpose() <<std::endl;
+			}
 		};
+		auto action_log = ActionLog{};
 
 		//HSM
 		//sub sm
@@ -161,21 +196,21 @@ namespace WHU_ROBOT{
 			auto operator()() {
 				using namespace sml;
 				return make_transition_table(
-					"xy_control"_s(H) + event<timetick> [if_err_xy] / action_xy ,
-					"xy_control"_s + event<timetick> [(! if_err_xy) && if_err_yaw] 
-						= "yaw_control"_s,
 					"xy_control"_s + on_entry<_> / [](ControlInterface& interface)
 					{
 						interface.pid_vx.reset();
 						interface.pid_vy.reset();
 					},
+					"xy_control"_s + event<timetick> [(! if_err_xy) && if_err_yaw] 
+						= "yaw_control"_s,
+					"xy_control"_s(H) + event<timetick> [if_err_xy] / action_xy ,
 
-					"yaw_control"_s + event<timetick> [if_err_yaw] / action_yaw ,
-					"yaw_control"_s + event<timetick> [if_err_xy] = "xy_control"_s,
 					"yaw_control"_s + on_entry<_> / [](ControlInterface& interface)
 					{
 						interface.pid_wz.reset();
-					}
+					},
+					"yaw_control"_s + event<timetick> [if_err_xy] = "xy_control"_s,
+					"yaw_control"_s + event<timetick> [if_err_yaw] / action_yaw
 				);
 			}
 		};
@@ -188,13 +223,13 @@ namespace WHU_ROBOT{
 					*"terminate_handle"_s + event<timetick> [if_unhealthy] 
 						/ (action_log,action_stop) = X,
 					"terminate_handle"_s + event<terminate> / action_stop = X,
-
-					*"unready"_s + event<timetick> [(! if_get_current) || (! if_get_target)] 
-						/ action_stop ,
-					"unready"_s + event<timetick> [if_get_current && if_get_target] = "stop"_s,
+					"terminate_handle"_s + unexpected_event<_> / action_stop = X,
 
 					
-					"stop"_s + event<timetick> [if_stop_flag] / action_stop ,
+					*"unready"_s + event<timetick> [if_get_current && if_get_target] = "stop"_s,
+					"unready"_s + event<timetick> [(! if_get_current) || (! if_get_target)] 
+						/ action_stop ,
+
 					"stop"_s + event<timetick> [
 							(! if_stop_flag) 
 							&& (! if_err_yaw)
@@ -204,15 +239,15 @@ namespace WHU_ROBOT{
 							(! if_stop_flag) 
 							&& (if_err_yaw || if_err_xy)
 						] = state<moving>,
+					"stop"_s + event<timetick> [if_stop_flag] / action_stop ,
 
 
 					state<moving> +  event<timetick> [if_stop_flag] = "stop"_s,
-					state<moving> +  event<timetick> [(!if_err_xy)&&(!if_err_yaw)] = "free"_s,
+					state<moving> +  event<timetick> [(!if_stop_flag)&&(!if_err_xy)&&(!if_err_yaw)] = "free"_s,
 
-
-					"free"_s + event<timetick> / action_free ,
+					"free"_s + event<timetick> [(!if_stop_flag)&&(if_err_xy || if_err_yaw)] = state<moving>,
 					"free"_s + event<timetick> [if_stop_flag] = "stop"_s,
-					"free"_s + event<timetick> [if_err_xy || if_err_yaw] = state<moving>
+					"free"_s + event<timetick> / action_free 
 				);
 			}
 		};
@@ -322,7 +357,7 @@ namespace WHU_ROBOT{
 		using Clock = std::chrono::steady_clock;
 		Clock::time_point lastTime_;
 		ControlInterface interface;
-		HSM::my_logger logger;
+		HSM::my_logger logger{};
 		sml::sm<HSM::car_sm, sml::logger<HSM::my_logger>> sm{logger, interface};
 		// sml::sm<HSM::car_sm> sm{interface};
 		
