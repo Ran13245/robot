@@ -68,12 +68,12 @@ namespace WHU_ROBOT{
 				packet.base_pos[2];
 
 			// Copy all four floats into a Quaternionf (w, x, y, z)
-			Eigen::Quaternionf quat(
-				packet.base_quat[0],  // w
-				packet.base_quat[1],  // x
-				packet.base_quat[2],  // y
-				packet.base_quat[3]   // z
-			);
+			Eigen::Quaternionf quat{};
+			quat.x() = packet.base_quat[0];  // x
+			quat.y() = packet.base_quat[1];  // y
+			quat.z() = packet.base_quat[2];  // z
+			quat.w() = packet.base_quat[3];   // w
+			
 
 			maskParser(packet.mask);
 

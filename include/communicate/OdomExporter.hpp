@@ -75,6 +75,7 @@ inline void OdomExporter<Mode>::addOdom(const uint64_t& time,
 	nav_state_msg data{};
 
 	if(popSyncSignal()){
+		std::cout<<"\033[33m" << "sync send back" << "\033[0m" << std::endl;
 		data.mask = MASK_ODOM_SYNC_ANSWER;
 	} else {
 		data.mask = 0;
@@ -87,10 +88,10 @@ inline void OdomExporter<Mode>::addOdom(const uint64_t& time,
 	data.base_pos[2] = base_pos.z();
 	data.base_pos[3] = 0.0f;
 		
-	data.base_quat[0] = base_quat.w();
-	data.base_quat[1] = base_quat.x();
-	data.base_quat[2] = base_quat.y();
-	data.base_quat[3] = base_quat.z();
+	data.base_quat[0] = base_quat.x();
+	data.base_quat[1] = base_quat.y();
+	data.base_quat[2] = base_quat.z();
+	data.base_quat[3] = base_quat.w();
 
 	send_mq.enqueue(std::move(data));
 
