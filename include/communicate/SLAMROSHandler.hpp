@@ -14,7 +14,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-
+#include <std_msgs/Bool.h>
 
 #include "configParser.hpp"
 #include "PointCloudExporter.hpp"
@@ -35,6 +35,9 @@ public:
 		std::cout<<"SLAMROSHandler constructing"<<std::endl;
 		cloud_sub = nh.subscribe<sensor_msgs::PointCloud2>(param.cloud_topic, 10, &SLAMROSHandler::cloudCallback, this);
 		odom_sub = nh.subscribe<nav_msgs::Odometry>(param.odom_topic, 10, &SLAMROSHandler::odomCallback, this);
+
+		state_msg_sync_sub = nh.subscribe<std_msgs::Bool>(param.state_msg_sync_enable, 10,
+			 &SLAMROSHandler::stateOdomSyncCallback, this);
 	}
 
 	~SLAMROSHandler() {
@@ -53,10 +56,16 @@ private:
 	PointCloudExporter cloud_exporter;
 	OdomExporter odom_exporter;
 
+	ros::Subscriber state_msg_sync_sub;
 
 	void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg);
 	void odomCallback(const nav_msgs::OdometryConstPtr& msg);
+	void stateOdomSyncCallback(const std_msgs::Bool::ConstPtr& msg);
 };
+
+inline void SLAMROSHandler::stateOdomSyncCallback(const std_msgs::Bool::ConstPtr& msg){
+	if(msg->data) odom_exporter.pushSyncSignal();
+}
 
 inline void SLAMROSHandler::init(void){
 	cloud_exporter.init();

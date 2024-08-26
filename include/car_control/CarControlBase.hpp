@@ -15,8 +15,9 @@ namespace WHU_ROBOT{
 		1 - no cnt, has vel
 		2- has cnt , no vel
 		3 - both has
+		|~|~|~|~|	|~|~|cnt|vel|
 	target:
-		same to odom
+		|control enable|~|~|~|	|~|~|cnt|vel|
 	control:
 		0 - disable
 		1 - stop

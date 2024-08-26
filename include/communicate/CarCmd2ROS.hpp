@@ -184,6 +184,10 @@ namespace WHU_ROBOT{
 			msg_sync.data = false;
 			state_sync_pub.publish(msg_sync);
 		}
+
+		if((mask & MASK_SYNC_ENABLE) && (mask & MASK_CAR_ENABLE)){
+			std::cout<<"Warning: MASK_CAR_ENABLE should be disabled when set MASK_SYNC_ENABLE"<<std::endl;
+		}
 	}
 
 
