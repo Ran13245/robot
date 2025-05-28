@@ -1,0 +1,7 @@
+cloud_topic: /cloud_registered
+odom_topic: /Odometry
+cloud_export_path: /workspace/export_cloud.bin
+remote_ip: 127.0.0.1
+remote_port: 5000
+local_ip: 127.0.0.1
+local_port: 5001
