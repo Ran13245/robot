@@ -333,7 +333,6 @@ public:
     template <typename Packet>
         requires std::is_same<typename Packet::Scalar, Scalar>::value
     const PacketPollPtr EncodePackets(const size_t startIndex, const size_t size, size_t NumOfThreads = 1)
-    //  PacketPollPtr EncodePackets(const size_t startIndex, const size_t size, size_t NumOfThreads = 1) const
     {
         std::mutex _mutex;
         assert(startIndex + size <= _points.size());
