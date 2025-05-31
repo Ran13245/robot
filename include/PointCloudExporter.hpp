@@ -130,6 +130,7 @@ private:
 	static constexpr float filter_resolution = 0.05f; 
 	static constexpr uint8_t filter_type = 2;//type 0 none; type 1 VoxelGrid; type 2 UniformSampling
 	static constexpr size_t transmit_poll_cnt_limit = 10; // transmit_poll到达此次数后发送
+	static constexpr size_t pcd_sample_cnt_limit = 1; 
 
 	/*-----------------------------functions-----------------------------------------*/
 	uint32_t intensityToHeatmapRGBA(const float& _intensity);
@@ -217,18 +218,20 @@ inline void PointCloudExporter::stop(void){
 
 inline void PointCloudExporter::addPoints(const pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr& _cloud)
 {
+	static size_t pcd_sample_cnt = 0; // 初始池大小
 
+	pcd_sample_cnt++;
 	pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr cloud = cloudFilter(_cloud);
 	for (const auto& pt : cloud->points) {
 		CompressedPoint base_pt{Eigen::Vector4f( pt.x, pt.y, pt.z, pt.intensity ), intensityToHeatmapRGBA( pt.intensity)};
 
 		if(enable_bin_save_)point_poll_.AddPoint(base_pt);
 
-		if(transmit_poll_ptr_)transmit_poll_ptr_->AddPoint(base_pt);
-		
+		if(transmit_poll_ptr_ && (pcd_sample_cnt >= pcd_sample_cnt_limit))transmit_poll_ptr_->AddPoint(base_pt);
 	}
 
-	if(transmit_poll_ptr_){
+	if(transmit_poll_ptr_ && (pcd_sample_cnt >= pcd_sample_cnt_limit)){
+		std::cout << "PointCloudTransmit: " << cloud->size() << " points added to transmit_poll." << std::endl;
 		transmit_poll_cnt_++;
 		if(transmit_poll_cnt_ >= transmit_poll_cnt_limit){
 			transmit_poll_cnt_ = 0;
@@ -236,6 +239,8 @@ inline void PointCloudExporter::addPoints(const pcl::PointCloud<pcl::PointXYZINo
 			transmit_poll_ptr_ = std::make_shared<PointPoll<CompressedPoint>>(initial_pool_size_);
 		}
 	}
+
+	if(pcd_sample_cnt >= pcd_sample_cnt_limit)pcd_sample_cnt = 0;
 }
 
 inline uint32_t PointCloudExporter::intensityToHeatmapRGBA(const float& _intensity) {
