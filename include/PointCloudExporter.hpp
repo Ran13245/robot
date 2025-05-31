@@ -82,6 +82,13 @@ namespace Schedule{
 		
 		}
 
+		void stop() override
+		{
+			std::cout << "io_context Stopping" << std::endl;
+			io_context.stop();
+			TaskBase::stop();
+			std::cout << "PCDTransmitTask Stopped" << std::endl;
+		}
 	private:
 		asio::io_context io_context;
 
@@ -110,12 +117,8 @@ public:
 
 	explicit PointCloudExporter(TaskBase& transmit_task,bool enable_pcd_trans = false, bool enable_bin_save = true, size_t initial_pool_size = 1024);
 
-	~PointCloudExporter(){
-		if(transmit_task_ptr_)transmit_task_ptr_->stop();
-		if(transmit_poll_msg_queue_ptr_) delete transmit_poll_msg_queue_ptr_;
-	}
-
 	void init(void);
+	void stop(void);
 
 	void addPoints(const pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr& _cloud);
 
@@ -204,6 +207,12 @@ inline void PointCloudExporter::init(void){
 		transmit_task_ptr_ = nullptr;
 	}
 	std::cout << "PointCloudExporter Started" << std::endl;
+}
+
+inline void PointCloudExporter::stop(void){
+	std::cout << "PointCloudExporter Stopping..." << std::endl;
+	if(transmit_task_ptr_)transmit_task_ptr_->stop();
+	if(transmit_poll_msg_queue_ptr_) delete transmit_poll_msg_queue_ptr_;
 }
 
 inline void PointCloudExporter::addPoints(const pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr& _cloud)

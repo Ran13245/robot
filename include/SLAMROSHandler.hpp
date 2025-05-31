@@ -37,11 +37,11 @@ public:
 	}
 
 	~SLAMROSHandler() {
-		ROS_INFO("Saving point cloud data to binary file: %s", param.cloud_export_path.c_str());
-		exporter.saveToBinaryFile(param.cloud_export_path,4);
+		
 	}
 
 	void init(void);
+	void stop(void);
 
 private:
 	ros::NodeHandle nh;
@@ -57,6 +57,12 @@ private:
 
 inline void SLAMROSHandler::init(void){
 	exporter.init();
+}
+
+inline void SLAMROSHandler::stop(void){
+	exporter.stop();
+	ROS_INFO("Saving point cloud data to binary file: %s", param.cloud_export_path.c_str());
+	exporter.saveToBinaryFile(param.cloud_export_path,4);
 }
 
 inline void SLAMROSHandler::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg){

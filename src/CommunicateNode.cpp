@@ -20,6 +20,7 @@ int main(int argc, char** argv)
     // 进入 ROS 循环
     ros::spin();
 
+    slam_handler.stop();
 // Schedule::PCDTransmitTask testTask{"127.0.0.1", 12345, "127.0.0.1", 12345};
 // IMsgQueue *msg_queue = new MsgQueueImpl<std::shared_ptr<std::span<std::byte>>>(100);
 // testTask.bind_msg_queue("PoindCloudPacket", msg_queue);
