@@ -78,7 +78,7 @@ namespace Schedule{
 			auto typed_ptr = std::static_pointer_cast<RingBuffer<std::shared_ptr<_SenderType>>>(cld_msg_queue->getRawBuffer());
 			channel.register_sender_buffer(typed_ptr);
 			channel.enable_sender();
-			// io_context.run();
+			io_context.run();
 		
 		}
 

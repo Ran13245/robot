@@ -18,6 +18,8 @@
 #include <utility>
 #include <type_traits>
 #include <concepts>
+#include "base_type.hpp"
+
 //! This struct is just for clarification, Do not use this in coding
 struct FullbodyCmd
 {
@@ -25,7 +27,7 @@ struct FullbodyCmd
     // enable: 1
     // disable: 0
     // Control Enable | base control | left hand control | right hand control | base vel valid | left hand vel valid | right hand vel valid | padding
-    uint8_t header;               // 0XFB
+    uint8_t header = 0xFB;        // 0XFB
     uint8_t mask;                 //
     uint32_t cnt;                 // packet count
     uint64_t time;                // timestamp unit: ns
@@ -43,9 +45,45 @@ struct FullbodyCmd
     uint32_t right_hand_vel;   // relative velocity of right hand in FLU coordinate             10-bit compressed
     uint32_t left_hand_omega;  // relative angular velocity of left hand in FLU coordinate      10-bit compressed
     uint32_t right_hand_omega; // relative angular velocity of right hand in FLU coordinate     10-bit compressed
-    uint16_t crc_bits;
+    uint16_t crc_bits;         // 16-bit KERMIT CRC
 
     // Total 76 Bytes
+};
+
+struct FullbodyState
+{
+    // mask explanation
+    // enable: 1
+    // disable: 0
+    // Control Enable | base control | left hand control | right hand control | base vel valid | left hand vel valid | right hand vel valid | padding
+    uint8_t mask;                   //
+    uint32_t cnt;                   // packet count
+    uint64_t time;                  // timestamp unit: ns
+    Eigen::Vector3f base_pos;       // global position of baselink in FLU coordinate
+    Eigen::Vector3f left_hand_pos;  // position of left hand relative to base in FLU coordinate
+    Eigen::Vector3f right_hand_pos; // position of right hand relative to base in FLU coordinate
+
+    Eigen::Quaternionf base_quat;       //
+    Eigen::Quaternionf left_hand_quat;  //
+    Eigen::Quaternionf right_hand_quat; //
+
+    Eigen::Vector3f base_lin_vel; // relative velocity of base in FLU coordinate
+    Eigen::Vector3f base_ang_vel; // relative angular velocity of base in FLU coordinate
+
+    Eigen::Vector3f left_hand_lin_vel;  // relative velocity of left hand in FLU coordinate
+    Eigen::Vector3f right_hand_lin_vel; // relative velocity of right hand in FLU coordinate
+    Eigen::Vector3f left_hand_ang_vel;  // relative angular velocity of left hand in FLU coordinate
+    Eigen::Vector3f right_hand_ang_vel; // relative angular velocity of right hand in FLU coordinate
+};
+
+struct MapInfo
+{
+    std::shared_ptr<AlignedVector<uint64_t>> points_resource;
+    void *colors_resource;
+    void *normals_resource;
+
+    size_t size;
+    size_t offset; // carry some extra infomation
 };
 
 template <typename ScalarType, int Bits>
@@ -93,10 +131,12 @@ static inline auto EncodeQuaternions(const Eigen::Quaternion<ScalarType> &q1,
                                      const Eigen::Quaternion<ScalarType> &q2 = Eigen::Quaternion<ScalarType>::Identity(),
                                      const Eigen::Quaternion<ScalarType> &q3 = Eigen::Quaternion<ScalarType>::Identity())
 {
-    auto encodeQuat = [](const Eigen::Quaternion<ScalarType> &q) -> uint64_t
+    auto encodeQuat = [](const Eigen::Quaternion<ScalarType> &_q) -> uint64_t
     {
         using namespace std;
         uint8_t mark = 3;
+        auto q = _q;
+        q.normalize();
         ScalarType min = abs(q.w());
         ScalarType fp1, fp2, fp3;
         fp1 = q.x();
@@ -164,7 +204,8 @@ static inline auto DecodeQuaternions(const uint64_t upper_bits, const uint64_t l
         fp1 = DecodeFloating<ScalarType, 13>((bin >> 48) & 0x1FFF);
         fp2 = DecodeFloating<ScalarType, 13>((bin >> 35) & 0x1FFF);
         fp3 = DecodeFloating<ScalarType, 13>((bin >> 22) & 0x1FFF);
-        ScalarType fp4 = sqrt(1.0 - fp1 * fp1 - fp2 * fp2 - fp3 * fp3);
+        ScalarType fp4_double = 1.0 - fp1 * fp1 - fp2 * fp2 - fp3 * fp3;
+        ScalarType fp4 = fp4_double <= 0 ? 0 : sqrt(fp4_double);
         Eigen::Quaternion<ScalarType> result;
         if ((mark & 0x03) == 0)
         {
