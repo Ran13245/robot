@@ -41,6 +41,8 @@ public:
 		exporter.saveToBinaryFile(param.cloud_export_path,4);
 	}
 
+	void init(void);
+
 private:
 	ros::NodeHandle nh;
 	param_t param;
@@ -49,13 +51,12 @@ private:
 	PointCloudExporter exporter;
 	PCDTransmitTask transmit_task;
 
-	void init(void);
 	void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg);
 	void odomCallback(const nav_msgs::OdometryConstPtr& msg);
 };
 
 inline void SLAMROSHandler::init(void){
-	
+	exporter.init();
 }
 
 inline void SLAMROSHandler::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg){

@@ -39,7 +39,7 @@ namespace Protocol{
 		using BinBuffer = std::span<std::byte>;
 		using SenderType = _SenderType;
 		using ReceiverType = DummyReceiver;
-		static constexpr size_t SenderMsgSize = _PacketType::TotalByte;//预留大小 or 发送大小？
+		static constexpr size_t SenderMsgSize = _PacketType::TotalByte;
 		static constexpr size_t ReceiverMsgSize = sizeof(DummyReceiver);
 		static constexpr void Encode(const SenderType &data, BinBuffer &buffer) {};
 		static constexpr void Decode(const BinBuffer &buffer, ReceiverType &data) {};
@@ -115,6 +115,8 @@ public:
 		if(transmit_poll_msg_queue_ptr_) delete transmit_poll_msg_queue_ptr_;
 	}
 
+	void init(void);
+
 	void addPoints(const pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr& _cloud);
 
 	bool saveToBinaryFile(const std::string &filename, size_t num_threads);
@@ -139,6 +141,7 @@ private:
 	IMsgQueue* transmit_poll_msg_queue_ptr_ = nullptr; // 传输任务的消息队列
 
 	bool enable_bin_save_; 
+	bool enable_pcd_trans_; 
 
 	size_t transmit_poll_cnt_ = 0;// transmit_poll使用计数
 
@@ -147,18 +150,19 @@ private:
 
 
 inline void PointCloudExporter::transmitCloud(void){
+	std::cout << "cloud transmiting " << std::endl;
 	if(transmit_task_ptr_){
 		auto packets_ptr = transmit_poll_ptr_->EncodePackets<_PacketType>(0, transmit_poll_ptr_->size(), 4);
-		
 		for(auto& pkt : *packets_ptr){
-			auto sender_ptr = std::make_shared<_SenderType>(pkt);
+			std::shared_ptr<_SenderType> sender_ptr = std::make_shared<_SenderType>(pkt);
 			if(transmit_poll_msg_queue_ptr_){
-				transmit_poll_msg_queue_ptr_->enqueue(sender_ptr.get());
+				transmit_poll_msg_queue_ptr_->enqueue(&sender_ptr);
 			} else {
 				std::cerr << "Error: transmit_poll_msg_queue_ptr_ is null!" << std::endl;
 			}
 		}	
 	}
+	std::cout << "cloud transmitted " << std::endl;
 }
 
 inline PointCloudExporter::PointCloudExporter(size_t initial_pool_size): point_poll_{initial_pool_size}
@@ -170,14 +174,21 @@ inline PointCloudExporter::PointCloudExporter(size_t initial_pool_size): point_p
 inline PointCloudExporter::PointCloudExporter(TaskBase& transmit_task ,bool enable_pcd_trans,bool enable_bin_save, size_t initial_pool_size):
 	transmit_task_ptr_{&transmit_task},
 	enable_bin_save_{enable_bin_save},
+	enable_pcd_trans_{enable_pcd_trans},
 	point_poll_{initial_pool_size}
 {
-std::cout << "PointCloudExporter Starting..." << std::endl;
 	initial_pool_size_ = initial_pool_size;
 	transmit_poll_ptr_ = std::make_shared<PointPoll<CompressedPoint>>(initial_pool_size);
-	if(enable_pcd_trans && transmit_task_ptr_){
 
-std::cout << "pcd_trans enabled" << std::endl;
+}
+
+
+inline void PointCloudExporter::init(void){
+	std::cout << "PointCloudExporter Starting..." << std::endl;
+
+	if(enable_pcd_trans_ && transmit_task_ptr_){
+
+		std::cout << "pcd_trans enabled" << std::endl;
 		transmit_poll_msg_queue_ptr_ = new MsgQueueImpl<std::shared_ptr<_SenderType>>(1024);
 		if(transmit_poll_msg_queue_ptr_ != nullptr){
 			transmit_task_ptr_->bind_msg_queue(std::string("PoindCloudPacket"), transmit_poll_msg_queue_ptr_);
@@ -185,17 +196,15 @@ std::cout << "pcd_trans enabled" << std::endl;
 			std::cout << "transmit_poll_msg_queue_ptr_ nullptr" << std::endl;
 		}
 
-std::cout << "transmit_task Starting..." << std::endl;
-		// transmit_task_ptr_->start();
+		std::cout << "transmit_task Starting..." << std::endl;
+		transmit_task_ptr_->start();
 	} else {
-std::cout << "pcd_trans not enable" << std::endl;
+		std::cout << "pcd_trans not enable" << std::endl;
 		transmit_poll_msg_queue_ptr_ = nullptr;
 		transmit_task_ptr_ = nullptr;
 	}
-std::cout << "PointCloudExporter Started" << std::endl;
+	std::cout << "PointCloudExporter Started" << std::endl;
 }
-
-
 
 inline void PointCloudExporter::addPoints(const pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr& _cloud)
 {

@@ -15,6 +15,7 @@ int main(int argc, char** argv)
 
     // 创建 SLAMROSHandler 实例
     WHU_ROBOT::SLAMROSHandler slam_handler(params, nh);
+    slam_handler.init();
 
     // 进入 ROS 循环
     ros::spin();
