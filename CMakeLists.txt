@@ -38,6 +38,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
+  /usr/include
   include
   include/point_interface
   include/net_interface

@@ -17,6 +17,7 @@
 #include <vector>
 #include <thread>
 #include <unordered_map>
+#include <atomic>
 #include "MsgQueue.hpp"
 namespace Schedule
 {
@@ -25,17 +26,23 @@ namespace Schedule
     {
     public:
         TaskBase() = default;
-        virtual ~TaskBase() = default;
+
+        virtual ~TaskBase()
+        {
+            this->stop();
+        }
 
         virtual void start()
         {
-            thread_ = std::thread(&TaskBase::task, this);
+            thread_flag = 1;
+            thread_ = std::thread([this]()
+                                  { this->task(); });
             return;
         }
 
         virtual void stop()
         {
-
+            thread_flag = 0;
             if (thread_.joinable())
                 thread_.join();
             return;
@@ -43,6 +50,7 @@ namespace Schedule
 
         int bind_msg_queue(const std::string &name, IMsgQueue *msg_queue)
         {
+// std::cout << name << std::endl;
             auto it = name_to_index.find(name);
             if (it != name_to_index.end())
             {
@@ -73,5 +81,6 @@ namespace Schedule
         std::thread thread_;
         std::vector<IMsgQueue *> msg_queues;
         std::unordered_map<std::string, int> name_to_index;
+        std::atomic<uint8_t> thread_flag;
     };
 }; // namespace Schedule

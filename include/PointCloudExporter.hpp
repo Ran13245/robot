@@ -21,49 +21,181 @@
 #include <pcl/keypoints/uniform_sampling.h>
 #include <eigen_conversions/eigen_msg.h>
 
+#include "TaskBase.hpp"
+#include "DataParser.hpp"
+#include "RingBuf.hpp"
+#include "UdpChannel.hpp"
+
+static constexpr size_t PACKET_MTU = 1400; // 可调整
+using _PacketType = PointPacket<CompressedPoint, PACKET_MTU>;
+using _SenderType = std::span<std::byte>;
+
+namespace Protocol{
+
+
+	template <>
+	struct SocketParser<_SenderType, DummyReceiver>
+	{
+		using BinBuffer = std::span<std::byte>;
+		using SenderType = _SenderType;
+		using ReceiverType = DummyReceiver;
+		static constexpr size_t SenderMsgSize = _PacketType::TotalByte;//预留大小 or 发送大小？
+		static constexpr size_t ReceiverMsgSize = sizeof(DummyReceiver);
+		static constexpr void Encode(const SenderType &data, BinBuffer &buffer) {};
+		static constexpr void Decode(const BinBuffer &buffer, ReceiverType &data) {};
+	};
+};
+
+
+
+namespace Schedule{
+
+	using namespace IO_Comm;
+	using namespace Protocol;
+
+	class PCDTransmitTask : public TaskBase
+	{
+	public:
+		using channelType = UdpChannel<SocketParser<_SenderType, DummyReceiver>>;
+		PCDTransmitTask(std::string remote_ip, int remote_port, std::string local_ip, int local_port):
+			remote_ip_(remote_ip),
+			remote_port_(remote_port),
+			local_ip_(local_ip),
+			local_port_(local_port)
+		{}
+
+		~PCDTransmitTask(){}
+	protected:
+		void task() override	
+		{
+			// std::cout << "333" << std::endl;
+        //     std::cout.flush();
+
+			channelType channel(io_context,
+					local_ip_, local_port_,
+					remote_ip_, remote_port_);
+			auto cld_msg_queue = quiry_msg_queue("PoindCloudPacket");
+			auto typed_ptr = std::static_pointer_cast<RingBuffer<std::shared_ptr<_SenderType>>>(cld_msg_queue->getRawBuffer());
+			channel.register_sender_buffer(typed_ptr);
+			channel.enable_sender();
+			// io_context.run();
+		
+		}
+
+	private:
+		asio::io_context io_context;
+
+		std::string remote_ip_;
+		int remote_port_;
+		std::string local_ip_;
+		int local_port_;
+	};
+
+};
 
 
 namespace WHU_ROBOT{
 
-	// static constexpr size_t PACKET_MTU = 1400; // 可调整
 
-	// using PacketType = PointPacket<CompressedPoint, PACKET_MTU>;
+using namespace IO_Comm;
+using namespace Protocol;
+using namespace Schedule;
+
+
 
 class PointCloudExporter {
 public:
 
 	explicit PointCloudExporter(size_t initial_pool_size = 1024);
 
+	explicit PointCloudExporter(TaskBase& transmit_task,bool enable_pcd_trans = false, bool enable_bin_save = true, size_t initial_pool_size = 1024);
+
+	~PointCloudExporter(){
+		if(transmit_task_ptr_)transmit_task_ptr_->stop();
+		if(transmit_poll_msg_queue_ptr_) delete transmit_poll_msg_queue_ptr_;
+	}
+
 	void addPoints(const pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr& _cloud);
 
 	bool saveToBinaryFile(const std::string &filename, size_t num_threads);
 
 private:
-	/**
-		* @brief 将点云序列化为多个二进制数据包（适合网络传输）
-		* @param num_threads 多线程编码数量
-		* @return shared_ptr<vector<span<byte>>> 数据包集合
-		*/
-	// std::shared_ptr<std::vector<std::span<std::byte>>> serializeToPackets(size_t num_threads = 1);
 
 	/*-----------------------------consts-----------------------------------------*/
 	static constexpr float filter_resolution = 0.05f; 
 	static constexpr uint8_t filter_type = 2;//type 0 none; type 1 VoxelGrid; type 2 UniformSampling
+	static constexpr size_t transmit_poll_cnt_limit = 10; // transmit_poll到达此次数后发送
 
 	/*-----------------------------functions-----------------------------------------*/
 	uint32_t intensityToHeatmapRGBA(const float& _intensity);
 	pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr cloudFilter(const 
 		pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr& cloud, float resolution = filter_resolution);
 
+	void transmitCloud(void);
 	/*-----------------------------objs-----------------------------------------*/
 	PointPoll<CompressedPoint> point_poll_;
+	std::shared_ptr<PointPoll<CompressedPoint>> transmit_poll_ptr_;
+	TaskBase* transmit_task_ptr_ = nullptr; // 传输任务
+	IMsgQueue* transmit_poll_msg_queue_ptr_ = nullptr; // 传输任务的消息队列
+
+	bool enable_bin_save_; 
+
+	size_t transmit_poll_cnt_ = 0;// transmit_poll使用计数
+
+	size_t initial_pool_size_; // 初始池大小
 };
 
 
+inline void PointCloudExporter::transmitCloud(void){
+	if(transmit_task_ptr_){
+		auto packets_ptr = transmit_poll_ptr_->EncodePackets<_PacketType>(0, transmit_poll_ptr_->size(), 4);
+		
+		for(auto& pkt : *packets_ptr){
+			auto sender_ptr = std::make_shared<_SenderType>(pkt);
+			if(transmit_poll_msg_queue_ptr_){
+				transmit_poll_msg_queue_ptr_->enqueue(sender_ptr.get());
+			} else {
+				std::cerr << "Error: transmit_poll_msg_queue_ptr_ is null!" << std::endl;
+			}
+		}	
+	}
+}
+
 inline PointCloudExporter::PointCloudExporter(size_t initial_pool_size): point_poll_{initial_pool_size}
 {
-		
+	initial_pool_size_ = initial_pool_size;
+	transmit_poll_ptr_ = std::make_shared<PointPoll<CompressedPoint>>(initial_pool_size);
 }
+
+inline PointCloudExporter::PointCloudExporter(TaskBase& transmit_task ,bool enable_pcd_trans,bool enable_bin_save, size_t initial_pool_size):
+	transmit_task_ptr_{&transmit_task},
+	enable_bin_save_{enable_bin_save},
+	point_poll_{initial_pool_size}
+{
+std::cout << "PointCloudExporter Starting..." << std::endl;
+	initial_pool_size_ = initial_pool_size;
+	transmit_poll_ptr_ = std::make_shared<PointPoll<CompressedPoint>>(initial_pool_size);
+	if(enable_pcd_trans && transmit_task_ptr_){
+
+std::cout << "pcd_trans enabled" << std::endl;
+		transmit_poll_msg_queue_ptr_ = new MsgQueueImpl<std::shared_ptr<_SenderType>>(1024);
+		if(transmit_poll_msg_queue_ptr_ != nullptr){
+			transmit_task_ptr_->bind_msg_queue(std::string("PoindCloudPacket"), transmit_poll_msg_queue_ptr_);
+		} else{
+			std::cout << "transmit_poll_msg_queue_ptr_ nullptr" << std::endl;
+		}
+
+std::cout << "transmit_task Starting..." << std::endl;
+		// transmit_task_ptr_->start();
+	} else {
+std::cout << "pcd_trans not enable" << std::endl;
+		transmit_poll_msg_queue_ptr_ = nullptr;
+		transmit_task_ptr_ = nullptr;
+	}
+std::cout << "PointCloudExporter Started" << std::endl;
+}
+
+
 
 inline void PointCloudExporter::addPoints(const pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr& _cloud)
 {
@@ -71,10 +203,21 @@ inline void PointCloudExporter::addPoints(const pcl::PointCloud<pcl::PointXYZINo
 	pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr cloud = cloudFilter(_cloud);
 	for (const auto& pt : cloud->points) {
 		CompressedPoint base_pt{Eigen::Vector4f( pt.x, pt.y, pt.z, pt.intensity ), intensityToHeatmapRGBA( pt.intensity)};
-		point_poll_.AddPoint(base_pt);
 
+		if(enable_bin_save_)point_poll_.AddPoint(base_pt);
+
+		if(transmit_poll_ptr_)transmit_poll_ptr_->AddPoint(base_pt);
+		
 	}
 
+	if(transmit_poll_ptr_){
+		transmit_poll_cnt_++;
+		if(transmit_poll_cnt_ >= transmit_poll_cnt_limit){
+			transmit_poll_cnt_ = 0;
+			transmitCloud();
+			transmit_poll_ptr_ = std::make_shared<PointPoll<CompressedPoint>>(initial_pool_size_);
+		}
+	}
 }
 
 inline uint32_t PointCloudExporter::intensityToHeatmapRGBA(const float& _intensity) {
@@ -104,6 +247,7 @@ inline uint32_t PointCloudExporter::intensityToHeatmapRGBA(const float& _intensi
 
 inline bool PointCloudExporter::saveToBinaryFile(const std::string &filename, size_t num_threads)
 {
+	if(enable_bin_save_){
 	// Step 1: 序列化为数据包
 	// auto packets = this->serializeToPackets(num_threads);
 	std::vector<std::byte> buffer;
@@ -132,6 +276,7 @@ inline bool PointCloudExporter::saveToBinaryFile(const std::string &filename, si
 	}
 
 	file.close();
+	}
 	return true;
 }
 
@@ -165,4 +310,4 @@ PointCloudExporter::cloudFilter(const pcl::PointCloud<pcl::PointXYZINormal>::Con
 }
 
 
-}//namespace WHU_robot
+};//namespace WHU_robot

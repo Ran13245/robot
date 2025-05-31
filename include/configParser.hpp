@@ -13,9 +13,12 @@ public:
 	std::string cloud_export_path;
 	
 	std::string remote_ip;
-	std::string remote_port;
+	int remote_port;
 	std::string local_ip;
-	std::string local_port;
+	int local_port;
+
+	bool enable_bin_save;
+	bool enable_pcd_trans;
 
 	param_t(const std::string& filename){
 		try {
@@ -24,9 +27,11 @@ public:
 			odom_topic = config["odom_topic"].as<std::string>();
 			cloud_export_path = config["cloud_export_path"].as<std::string>();
 			remote_ip = config["remote_ip"].as<std::string>();
-			remote_port = config["remote_port"].as<std::string>();
+			remote_port = config["remote_port"].as<int>();
 			local_ip = config["local_ip"].as<std::string>();
-			local_port = config["local_port"].as<std::string>();
+			local_port = config["local_port"].as<int>();
+			enable_bin_save = config["enable_bin_save"].as<bool>();
+			enable_pcd_trans = config["enable_pcd_trans"].as<bool>();
 		} catch (const YAML::Exception& e) {
 			throw std::runtime_error("Error parsing configuration file: " + std::string(e.what()));
 		}
