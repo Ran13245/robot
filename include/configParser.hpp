@@ -51,4 +51,23 @@ public:
 	}
 };
 
+class ctl_param_t {
+public:
+	std::string odom_topic;
+	std::string target_odom_topic;
+	std::string ctrl_topic;
+
+	ctl_param_t(const std::string& filename){
+		try {
+			YAML::Node config = YAML::LoadFile(filename);
+			odom_topic = config["odom_topic"].as<std::string>();
+			target_odom_topic = config["target_odom_topic"].as<std::string>();
+			ctrl_topic = config["ctrl_topic"].as<std::string>();
+
+		} catch (const YAML::Exception& e) {
+			throw std::runtime_error("Error parsing configuration file: " + std::string(e.what()));
+		}
+	}
+};
+
 }//namespace WHU_robot

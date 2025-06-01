@@ -17,3 +17,11 @@ odom_remote_port: 5002
 odom_local_ip: 127.0.0.1
 odom_local_port: 5003
 enable_odom_trans: true
+
+
+#cmd2ROS 
+car_cmd_remote_ip: 192.168.1.101
+car_cmd_remote_port: 5004
+car_cmd_local_ip: 192.168.1.5
+car_cmd_local_port: 5005
+target_odom_topic: /robot/targetOdom

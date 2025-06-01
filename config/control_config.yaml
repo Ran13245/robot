@@ -1,0 +1,6 @@
+#ROS
+odom_topic: /Odometry
+target_odom_topic: /robot/targetOdom
+ctrl_topic: /ctrl_cmd
+
+#ctrl

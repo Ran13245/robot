@@ -28,6 +28,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   message_generation
   eigen_conversions
+  yhs_can_msgs
 )
 
 find_package(Eigen3 3.4 REQUIRED)
@@ -49,6 +50,7 @@ include_directories(
   include/point_interface
   include/net_interface
   include/communicate
+  include/car_control
 )
 
 add_definitions(${PCL_DEFINITIONS})
@@ -56,7 +58,14 @@ add_definitions(${PCL_DEFINITIONS})
 
 add_executable(WHUrobot_communicate_node src/CommunicateNode.cpp)
 
+add_executable(WHUrobot_carcontrol_node src/CarControlNode.cpp)
+
+
 
 target_link_libraries(WHUrobot_communicate_node
   ${catkin_LIBRARIES} Eigen3::Eigen ${PCL_LIBRARIES} ${YAML_CPP_LIBRARIES}
+)
+
+target_link_libraries(WHUrobot_carcontrol_node
+  ${catkin_LIBRARIES} Eigen3::Eigen ${YAML_CPP_LIBRARIES}
 )
