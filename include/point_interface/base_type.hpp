@@ -275,6 +275,15 @@ public:
         return result;
     }
 
+    void clear()
+    {
+        std::unique_lock lock(rw_mutex);
+        _points.clear();
+        emptyPtrOffset = 0;
+        pointNum = 0;
+        copyCnt = 1;
+    }
+
     // thread-safe function
     // Do not call this mannually, it's supposed to be called when receiving udp packets
     // It is highly not recommended to call this function with AddPoint()

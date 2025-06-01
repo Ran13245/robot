@@ -20,7 +20,7 @@
 #include <asio/steady_timer.hpp>
 #include "DataParser.hpp"
 #include "RingBuf.hpp"
-
+// #include <iomanip>
 namespace IO_Comm
 {
     using namespace Protocol;
@@ -85,6 +85,45 @@ namespace IO_Comm
                     auto data = tmp_sender_buffer_->pop();
                     if constexpr (isDirectType<typename Parser::SenderType>)
                     {
+//                         uint64_t extracted;
+//     std::memcpy(&extracted, data->data() + 20, sizeof(uint64_t));
+
+// static bool flag = 0;
+
+// if(!flag){
+
+//         std::cout<< CompressedPoint::decode_morton(*(uint64_t*)(data->data() + 20))<<std::endl;
+//                         std::cout<<extracted<<std::endl;
+//                         std::cout << "---------------------------------------------------------" << std::endl;
+
+//     // 先把 data->data() 视为 const uint8_t*，这样我们可以按字节索引
+//     const uint8_t* ptr = reinterpret_cast<const uint8_t*>(data->data());
+//     size_t       len = data->size();
+
+//     for (size_t i = 0; i < len; i++) {
+//         uint8_t byte = ptr[i];
+//         // 先输出“0x”，然后用 hex、setw、setfill 输出两位十六进制
+//         std::cout 
+//             << "0x" 
+//             << std::hex 
+//             << std::setw(2) 
+//             << std::setfill('0') 
+//             << static_cast<int>(byte) 
+//             << " ";
+//         // 注意：std::hex、std::setw 和 std::setfill 只影响后面的输出，不会自动恢复为十进制
+//     }
+//     // 如果后面还要输出十进制文本，记得恢复：
+//     std::cout << std::dec << std::setfill(' ') << std::endl;
+//     std::cout << "---------------------------------------------------------"<<std::endl;
+
+//     flag = 1;
+// }
+
+
+
+
+
+
                         this->socket_.async_send_to(asio::buffer(data->data(), data->size()), this->remote_endpoint_,
                                                     [](const asio::error_code &error, std::size_t bytes_transferred) {});
                     }
