@@ -24,6 +24,7 @@ namespace WHU_ROBOT{
 
 		CarState computeControlOnce(void) override {
 			std::cout<<"compute in SimpleCtrl"<<std::endl;
+			return CarState{};
 		};
 	private:
 		ctl_param_t param;
