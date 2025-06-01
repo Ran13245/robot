@@ -20,6 +20,13 @@ public:
 	bool enable_bin_save;
 	bool enable_pcd_trans;
 
+	std::string odom_remote_ip;
+	int odom_remote_port;
+	std::string odom_local_ip;
+	int odom_local_port;
+
+	bool enable_odom_trans;
+
 	param_t(const std::string& filename){
 		try {
 			YAML::Node config = YAML::LoadFile(filename);
@@ -32,6 +39,12 @@ public:
 			local_port = config["local_port"].as<int>();
 			enable_bin_save = config["enable_bin_save"].as<bool>();
 			enable_pcd_trans = config["enable_pcd_trans"].as<bool>();
+
+			odom_remote_ip = config["odom_remote_ip"].as<std::string>();
+			odom_remote_port = config["odom_remote_port"].as<int>();
+			odom_local_ip = config["odom_local_ip"].as<std::string>();
+			odom_local_port = config["odom_local_port"].as<int>();
+			enable_odom_trans = config["enable_odom_trans"].as<bool>();
 		} catch (const YAML::Exception& e) {
 			throw std::runtime_error("Error parsing configuration file: " + std::string(e.what()));
 		}

@@ -1,3 +1,4 @@
+#cloud
 cloud_topic: /cloud_registered
 odom_topic: /Odometry
 cloud_export_path: /workspace/export_cloud.bin
@@ -9,3 +10,10 @@ local_port: 5001
 enable_bin_save: false
 enable_pcd_trans: true
 
+
+#odom
+odom_remote_ip: 127.0.0.1
+odom_remote_port: 5002
+odom_local_ip: 127.0.0.1
+odom_local_port: 5003
+enable_odom_trans: true
