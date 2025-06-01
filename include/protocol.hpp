@@ -45,7 +45,9 @@ struct FullbodyCmd
     uint32_t right_hand_vel;   // relative velocity of right hand in FLU coordinate             10-bit compressed
     uint32_t left_hand_omega;  // relative angular velocity of left hand in FLU coordinate      10-bit compressed
     uint32_t right_hand_omega; // relative angular velocity of right hand in FLU coordinate     10-bit compressed
-    uint16_t crc_bits;         // 16-bit KERMIT CRC
+
+    uint32_t grip;     // left hand and right hand
+    uint16_t crc_bits; // 16-bit KERMIT CRC
 
     // Total 76 Bytes
 };
@@ -74,6 +76,7 @@ struct FullbodyState
     Eigen::Vector3f right_hand_lin_vel; // relative velocity of right hand in FLU coordinate
     Eigen::Vector3f left_hand_ang_vel;  // relative angular velocity of left hand in FLU coordinate
     Eigen::Vector3f right_hand_ang_vel; // relative angular velocity of right hand in FLU coordinate
+    float left_input, right_input;      // left hand and right hand
 };
 
 struct MapInfo
@@ -106,14 +109,34 @@ static inline auto DecodeFloating(const uint32_t fp_enc, const ScalarType maxAbs
 
 template <typename ScalarType, int Bits>
     requires(Bits > 0 && Bits <= 21)
+static inline auto Encode2D(const ScalarType x, const ScalarType y, const ScalarType maxAbs = 1.0)
+{
+    using UnsignedType = std::conditional_t<(Bits * 2 > 32), uint64_t, uint32_t>;
+    auto x_enc = EncodeFloating<ScalarType, Bits>(x, maxAbs);
+    auto y_enc = EncodeFloating<ScalarType, Bits>(y, maxAbs);
+    UnsignedType fp_enc = y_enc | (x_enc << Bits);
+    return fp_enc;
+}
+
+template <typename ScalarType, int Bits>
+    requires(Bits > 0 && Bits <= 21)
 static inline auto Encode3D(const ScalarType x, const ScalarType y, const ScalarType z, const ScalarType maxAbs = 1.0)
 {
-    using UnsignedType = std::conditional_t<(Bits > 32), uint64_t, uint32_t>;
+    using UnsignedType = std::conditional_t<(Bits * 3 > 32), uint64_t, uint32_t>;
     auto x_enc = EncodeFloating<ScalarType, Bits>(x, maxAbs);
     auto y_enc = EncodeFloating<ScalarType, Bits>(y, maxAbs);
     auto z_enc = EncodeFloating<ScalarType, Bits>(z, maxAbs);
     UnsignedType fp_enc = z_enc | (y_enc << Bits) | (x_enc << (2 * Bits));
     return fp_enc;
+}
+
+template <typename ScalarType, int Bits>
+    requires(Bits > 0 && Bits <= 21)
+static inline auto Decode2D(const std::conditional_t<(Bits * 2 > 32), uint64_t, uint32_t> fp_enc, const ScalarType maxAbs = 1.0)
+{
+    ScalarType x = DecodeFloating<ScalarType, Bits>(fp_enc >> (1 * Bits), maxAbs);
+    ScalarType y = DecodeFloating<ScalarType, Bits>(fp_enc, maxAbs);
+    return std::make_tuple(x, y);
 }
 
 template <typename ScalarType, int Bits>

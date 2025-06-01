@@ -103,35 +103,6 @@ struct BasePoint
     }
 };
 
-// #include <algorithm>
-// #include <cstdint>
-// #include <tuple>
-
-// inline uint32_t intensityToHeatmapRGBA(const float& _intensity) {
-//     // 将 intensity 限定到 [0, 255]
-//     float intensity = std::max(0.0f, std::min(255.0f, _intensity));
-
-//     int r, g, b;
-//     if (intensity < 128.0f) {
-//         r = 0;
-//         g = static_cast<int>(255.0f * intensity / 128.0f);
-//         b = 255;
-//     } else {
-//         float scaled = (intensity - 128.0f) / 127.0f;
-//         r = static_cast<int>(255.0f * scaled);
-//         g = 255;
-//         b = static_cast<int>(255.0f - 255.0f * scaled);
-//     }
-
-//     const uint8_t alpha = 255;  // 不透明
-//     // 按 0xRRGGBBAA 打包（大端意义上的 RGBA）
-//     return
-//         (static_cast<uint32_t>(r) << 24) |
-//         (static_cast<uint32_t>(g) << 16) |
-//         (static_cast<uint32_t>(b) <<  8) |
-//          static_cast<uint32_t>(alpha);
-// }
-
 struct CompressedPoint
 {
     using Scalar = uint64_t;
@@ -323,7 +294,7 @@ public:
         copyCnt.fetch_add(1);
         // memcpy(_points.data() + offset, packet._points.data(), Packet::TotalByte);
         Packet packet(_points.data() + offset);
-        zpp::bits::in{buffer, zpp::bits::endian::big{}}(packet).or_throw();
+        zpp::bits::in{buffer, zpp::bits::size4b{}, zpp::bits::endian::big{}}(packet).or_throw();
         pointNum.fetch_add(packet.size());
         copyCnt.fetch_sub(1);
         return packet.size();
@@ -355,7 +326,7 @@ public:
                 Packet packet(_points.data() + startIndex + packet_index[j] * Packet::MaxPointNum);
                 packet.SetAttribute(0, Packet::MaxPointNum);
                 std::span<std::byte> currentView = std::span<std::byte>(this->internal_buffer.data() + packet_index[j] * Packet::TotalByte, Packet::TotalByte);
-                auto out = zpp::bits::out(currentView, zpp::bits::endian::big{});
+                auto out = zpp::bits::out(currentView, zpp::bits::size4b{}, zpp::bits::endian::big{});
                 out(packet).or_throw();
                 {
                     std::unique_lock<std::mutex> lock(_mutex);
