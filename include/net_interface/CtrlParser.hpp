@@ -11,8 +11,8 @@ namespace Protocol
         using BinBuffer = std::span<std::byte>;
         using SenderType = FullbodyState;
         using ReceiverType = FullbodyState;
-        static constexpr size_t SenderMsgSize = 76;
-        static constexpr size_t ReceiverMsgSize = 76;
+        static constexpr size_t SenderMsgSize = 80;
+        static constexpr size_t ReceiverMsgSize = 80;
 
         static inline void Encode(const SenderType &state, BinBuffer &buffer)
         {
@@ -44,8 +44,11 @@ namespace Protocol
             tmp_32bits = Encode3D<float, 10>(state.right_hand_ang_vel.x(), state.right_hand_ang_vel.y(), state.right_hand_ang_vel.z(), 6.28);
             memcpy(&buffer[70], &tmp_32bits, sizeof(uint32_t));
 
-            std::uint16_t crc = CRC::CalculateBits(buffer.data(), 74, CRC::CRC_16_KERMIT());
-            memcpy(&buffer[74], &crc, sizeof(uint16_t));
+            tmp_32bits =Encode2D<float, 16>(state.left_input, state.right_input);
+            memcpy(&buffer[74], &tmp_32bits, sizeof(uint32_t));
+
+            std::uint16_t crc = CRC::CalculateBits(buffer.data(), 78, CRC::CRC_16_KERMIT());
+            memcpy(&buffer[78], &crc, sizeof(uint16_t));
             return;
         }
 
