@@ -48,6 +48,7 @@ include_directories(
   include
   include/point_interface
   include/net_interface
+  include/communicate
 )
 
 add_definitions(${PCL_DEFINITIONS})
