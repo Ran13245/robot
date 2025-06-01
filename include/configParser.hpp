@@ -57,12 +57,43 @@ public:
 	std::string target_odom_topic;
 	std::string ctrl_topic;
 
+	float delta_distance;
+	float delta_yaw;
+	float brake_distance;
+
+	float p_vx;
+	float p_vy;
+	float p_wz;
+
+	float d_vx;
+	float d_vy;
+	float d_wz;
+
+	float max_v;
+	float max_w;
+
 	ctl_param_t(const std::string& filename){
 		try {
 			YAML::Node config = YAML::LoadFile(filename);
+
 			odom_topic = config["odom_topic"].as<std::string>();
 			target_odom_topic = config["target_odom_topic"].as<std::string>();
 			ctrl_topic = config["ctrl_topic"].as<std::string>();
+
+			delta_distance = config["delta_distance"].as<float>();
+			delta_yaw = config["delta_yaw"].as<float>();
+			brake_distance = config["brake_distance"].as<float>();
+
+			p_vx = config["p_vx"].as<float>();
+			p_vy = config["p_vy"].as<float>();
+			p_wz = config["p_wz"].as<float>();
+
+			d_vx = config["d_vx"].as<float>();
+			d_vy = config["d_vy"].as<float>();
+			d_wz = config["d_wz"].as<float>();
+
+			max_v = config["max_v"].as<float>();
+			max_w = config["max_w"].as<float>();
 
 		} catch (const YAML::Exception& e) {
 			throw std::runtime_error("Error parsing configuration file: " + std::string(e.what()));

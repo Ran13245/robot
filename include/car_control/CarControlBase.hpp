@@ -3,9 +3,11 @@
 #include <Eigen/Eigen>
 #include <Eigen/Core>
 #include <Eigen/Dense>
+#include <Eigen/Geometry>
 
 namespace WHU_ROBOT{
 
+	constexpr float RAD2DEG = 180.0f / static_cast<float>(M_PI);
 	/*
 	mode:
 	odom:
@@ -43,5 +45,66 @@ namespace WHU_ROBOT{
 	};
 
 	inline CarControllerBase::~CarControllerBase() { }
+
+
+
+	/* @param q   输入四元数 (Eigen::Quaternionf)，假设已归一化
+	* @return    一个 Eigen::Vector3f，存放 {roll, pitch, yaw}（弧度）
+	*/
+	inline Eigen::Vector3f quaternionToEuler(const Eigen::Quaternionf& _q)
+	{
+		// 确保四元数是归一化的；若有可能未归一化，最好先手动 normalize：
+		Eigen::Quaternionf q = _q.normalized();
+		const float w = q.w();
+		const float x = q.x();
+		const float y = q.y();
+		const float z = q.z();
+
+		// 计算 sin(pitch) 的中间值，并 clamp 到 [-1, +1]
+		float sinp = 2.0f * (w * y - z * x);
+		if (sinp > +1.0f) sinp = +1.0f;
+		if (sinp < -1.0f) sinp = -1.0f;
+
+		// 逐项计算 roll, pitch, yaw
+		float roll  = std::atan2(2.0f * (w * x + y * z),
+					1.0f - 2.0f * (x * x + y * y));
+		float pitch = std::asin(sinp);
+		float yaw   = std::atan2(2.0f * (w * z + x * y),
+					1.0f - 2.0f * (y * y + z * z));
+
+		return Eigen::Vector3f(roll, pitch, yaw);
+	}
+
+	/**
+	* @brief 从四元数中提取偏航角（yaw），并以度为单位返回
+	* 
+	* @param q  输入四元数 (Eigen::Quaternionf)，假设已归一化或在调用前已 normalize
+	* @return float  yaw 角（单位：度）
+	*/
+	inline float getYawDegrees(const Eigen::Quaternionf& q)
+	{
+		// 调用已有的 quaternionToEuler()，返回 {roll, pitch, yaw}（弧度）
+		Eigen::Vector3f euler = quaternionToEuler(q);
+		float yawRad = euler[2];
+		// 转换为度
+		return yawRad * RAD2DEG;
+	}
+
+	/**
+	* @brief 计算两个三维点之间的欧氏距离
+	*
+	* @param current_pos  当前坐标 (Eigen::Vector3f)
+	* @param target_pos   目标坐标 (Eigen::Vector3f)
+	* @return float       两点之间的欧氏距离
+	*/
+	inline float euclideanDistance(const Eigen::Vector3f& current_pos,
+				const Eigen::Vector3f& target_pos)
+	{
+		// 1. 先做差，得到一个 Vector3f
+		Eigen::Vector3f delta = current_pos - target_pos;
+		// 2. 直接调用 .norm()，返回 √(x² + y² + z²)
+		return delta.norm();
+	}
+
 
 };//namespace WHU_ROBOT

@@ -46,7 +46,7 @@ namespace WHU_ROBOT{
 		CarState cmd;
 		cmd = controller_ptr->computeControlOnce();
 		ctrlPublish(cmd);
-		ROS_INFO("exec once");
+		// ROS_INFO("exec once");
 	}
 
 

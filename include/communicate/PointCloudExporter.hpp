@@ -128,7 +128,7 @@ private:
 
 	/*-----------------------------consts-----------------------------------------*/
 	static constexpr float filter_resolution = 0.05f; 
-	static constexpr uint8_t filter_type = 2;//type 0 none; type 1 VoxelGrid; type 2 UniformSampling
+	static constexpr uint8_t filter_type = 0;//type 0 none; type 1 VoxelGrid; type 2 UniformSampling
 	static constexpr size_t transmit_poll_cnt_limit = 10; // transmit_poll到达此次数后发送
 	static constexpr size_t pcd_sample_cnt_limit = 1; 
 
