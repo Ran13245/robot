@@ -42,10 +42,7 @@ namespace Schedule{
 			remote_ip_(remote_ip),
 			remote_port_(remote_port),
 			local_ip_(local_ip),
-			local_port_(local_port),
-			channel(io_context,
-				local_ip_, local_port_,
-				remote_ip_, remote_port_)
+			local_port_(local_port)
 		{}
 
 		~TargetReceiveTask(){}
@@ -58,17 +55,15 @@ namespace Schedule{
 			std::cout << "TargetReceiveTask Stopped" << std::endl;
 		}
 
-		channelType channel;
+		channelType* channel_ptr;
 	protected:
 		void task() override	
 		{
-			// channelType channel(io_context,
-			// 		local_ip_, local_port_,
-			// 		remote_ip_, remote_port_);
-			// auto odom_msg_queue = quiry_msg_queue("OdomMsg");
-			// auto typed_ptr = std::static_pointer_cast<RingBuffer<std::shared_ptr<FullbodyState>>>(odom_msg_queue->getRawBuffer());
-			// channel.register_sender_buffer(typed_ptr);
+			channelType channel(io_context,
+					local_ip_, local_port_,
+					remote_ip_, remote_port_);
 			channel.enable_receiver();
+			channel_ptr = &channel;
 			io_context.run();
 		
 		}
@@ -118,7 +113,7 @@ namespace WHU_ROBOT{
 	};
 
 	void CarCmd2ROSHandler::exec(void){
-		auto rec_buf = transmit_task.channel.get_receiver_buffer();
+		auto rec_buf = transmit_task.channel_ptr->get_receiver_buffer();
 
 		std::shared_ptr<FullbodyState> data_ptr;
 		if(rec_buf->try_pop(data_ptr)){
