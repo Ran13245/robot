@@ -64,14 +64,15 @@ namespace WHU_ROBOT{
 					float vy = pid_vy.update(target_pos.y(), current_pos.y(), dt);
 					return dataCapsu(8, vx,vy,0);
 				}else {
-					//stop
+					//free
 					pid_wz.reset();
 					pid_vx.reset();
 					pid_vy.reset();
-					return dataCapsu(1, 0,0,0);
+					return dataCapsu(2, 0,0,0);
 				}
 			}
 
+			std::cout<<"target or current never got"<<std::endl;
 			return dataCapsu(1, 0,0,0);
 		};
 	private:
@@ -114,6 +115,10 @@ namespace WHU_ROBOT{
 				rtn.base_lin_vel.x() = vx;
 				rtn.base_lin_vel.y() = vy;
 
+				rtn.base_ang_vel.setZero();
+			} else if (mode == 2){//free
+				rtn.mode = 2;
+				rtn.base_lin_vel.setZero();
 				rtn.base_ang_vel.setZero();
 			} else {//stop
 				rtn.mode = 1;

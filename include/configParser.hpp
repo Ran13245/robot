@@ -27,6 +27,14 @@ public:
 
 	bool enable_odom_trans;
 
+	std::string car_cmd_remote_ip;
+	int car_cmd_remote_port;
+	std::string car_cmd_local_ip;
+	int car_cmd_local_port;
+	std::string target_odom_topic;
+	bool enable_cmd2ROS;
+
+
 	param_t(const std::string& filename){
 		try {
 			YAML::Node config = YAML::LoadFile(filename);
@@ -45,6 +53,14 @@ public:
 			odom_local_ip = config["odom_local_ip"].as<std::string>();
 			odom_local_port = config["odom_local_port"].as<int>();
 			enable_odom_trans = config["enable_odom_trans"].as<bool>();
+
+
+			car_cmd_remote_ip = config["car_cmd_remote_ip"].as<std::string>();
+			car_cmd_remote_port = config["car_cmd_remote_port"].as<int>();
+			car_cmd_local_ip = config["car_cmd_local_ip"].as<std::string>();
+			car_cmd_local_port = config["car_cmd_local_port"].as<int>();
+			target_odom_topic = config["target_odom_topic"].as<std::string>();
+			enable_cmd2ROS = config["enable_cmd2ROS"].as<bool>();
 		} catch (const YAML::Exception& e) {
 			throw std::runtime_error("Error parsing configuration file: " + std::string(e.what()));
 		}

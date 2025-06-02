@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include "SLAMROSHandler.hpp"
 #include "configParser.hpp"
+#include "CarCmd2ROS.hpp"
 
 int main(int argc, char** argv)
 {
@@ -15,9 +16,22 @@ int main(int argc, char** argv)
     WHU_ROBOT::SLAMROSHandler slam_handler(params, nh);
     slam_handler.init();
 
-    ros::spin();
+
+    WHU_ROBOT::CarCmd2ROSHandler cmd_handler(params, nh);
+    cmd_handler.init();
+
+    // ros::spin();
+
+    ros::Rate rate(100.0);
+
+    while(ros::ok()){
+        cmd_handler.exec();
+        ros::spinOnce();
+        rate.sleep();
+    }
 
     slam_handler.stop();
+    cmd_handler.stop();
 
     return 0;
 }
