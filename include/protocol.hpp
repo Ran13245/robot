@@ -20,7 +20,7 @@
 #include <concepts>
 #include "base_type.hpp"
 
-//! This struct is just for clarification, Do not use this in coding
+
 struct FullbodyCmd
 {
     // mask explanation
@@ -35,8 +35,12 @@ struct FullbodyCmd
     uint32_t left_hand_pos;       // position of left hand relative to base in FLU coordinate   10-bit compressed
     uint32_t right_hand_pos;      // position of right hand relative to base in FLU coordinate  10-bit compressed
 
-    uint64_t rotation_upper; // containing 3 quaternion:
-    uint64_t rotation_lower; // rotation of head, right hand and left hand
+    // uint64_t rotation_upper; // containing 3 quaternion:
+    // uint64_t rotation_lower; // rotation of head, right hand and left hand
+
+    float base_quat[4]; // quaternion of head
+    float left_hand_quat[4];  // quaternion of left hand
+    float right_hand_quat[4]; // quaternion of right hand
 
     uint32_t base_vel;   // relative velocity of base in FLU coordinate                         10-bit compressed
     uint32_t base_omega; // relative angular velocity of base in FLU coordinate                 10-bit compressed
@@ -45,12 +49,45 @@ struct FullbodyCmd
     uint32_t right_hand_vel;   // relative velocity of right hand in FLU coordinate             10-bit compressed
     uint32_t left_hand_omega;  // relative angular velocity of left hand in FLU coordinate      10-bit compressed
     uint32_t right_hand_omega; // relative angular velocity of right hand in FLU coordinate     10-bit compressed
+    uint16_t left_gripper_ctrl; // left gripper control
+    uint16_t right_gripper_ctrl; // right gripper control
+    uint16_t crc_bits;         // 16-bit KERMIT CRC
 
-    uint32_t grip;     // left hand and right hand
-    uint16_t crc_bits; // 16-bit KERMIT CRC
-
-    // Total 76 Bytes
+    //112bytes
 };
+
+
+//! This struct is just for clarification, Do not use this in coding
+// struct FullbodyCmd
+// {
+//     // mask explanation
+//     // enable: 1
+//     // disable: 0
+//     // Control Enable | base control | left hand control | right hand control | base vel valid | left hand vel valid | right hand vel valid | padding
+//     uint8_t header = 0xFB;        // 0XFB
+//     uint8_t mask;                 //
+//     uint32_t cnt;                 // packet count
+//     uint64_t time;                // timestamp unit: ns
+//     float base_x, base_y, base_z; // global position of baselink in FLU coordinate
+//     uint32_t left_hand_pos;       // position of left hand relative to base in FLU coordinate   10-bit compressed
+//     uint32_t right_hand_pos;      // position of right hand relative to base in FLU coordinate  10-bit compressed
+
+//     uint64_t rotation_upper; // containing 3 quaternion:
+//     uint64_t rotation_lower; // rotation of head, right hand and left hand
+
+//     uint32_t base_vel;   // relative velocity of base in FLU coordinate                         10-bit compressed
+//     uint32_t base_omega; // relative angular velocity of base in FLU coordinate                 10-bit compressed
+
+//     uint32_t left_hand_vel;    // relative velocity of left hand in FLU coordinate              10-bit compressed
+//     uint32_t right_hand_vel;   // relative velocity of right hand in FLU coordinate             10-bit compressed
+//     uint32_t left_hand_omega;  // relative angular velocity of left hand in FLU coordinate      10-bit compressed
+//     uint32_t right_hand_omega; // relative angular velocity of right hand in FLU coordinate     10-bit compressed
+
+//     uint32_t grip;     // left hand and right hand
+//     uint16_t crc_bits; // 16-bit KERMIT CRC
+
+//     // Total 76 Bytes
+// };
 
 struct FullbodyState
 {
@@ -82,11 +119,17 @@ struct FullbodyState
 struct MapInfo
 {
     std::shared_ptr<AlignedVector<uint64_t>> points_resource;
-    void *colors_resource;
-    void *normals_resource;
+    std::shared_ptr<AlignedVector<uint32_t>> colors_resource;
+    std::shared_ptr<AlignedVector<uint32_t>> normals_resource;
 
     size_t size;
     size_t offset; // carry some extra infomation
+};
+
+struct PoseInfo
+{
+    Eigen::Vector4f position;
+    Eigen::Quaternionf orientation;
 };
 
 template <typename ScalarType, int Bits>
@@ -149,6 +192,24 @@ static inline auto Decode3D(const std::conditional_t<(Bits * 3 > 32), uint64_t, 
     return std::make_tuple(x, y, z);
 }
 
+// template <typename ScalarType>
+// static inline auto EncodeQuaternion(const Eigen::Quaternion<ScalarType> &q)
+// {
+//     auto copy_q = q;
+//     Eigen::Index index;
+//     copy_q.coeffs().cwiseAbs().maxCoeff(&index);
+//     if (copy_q.coeffs()(index) < 0)
+//         copy_q.coeffs() *= -1;
+
+//     for (int i = 0; i < 4; i++)
+//     {
+//         if (i == index)
+//             continue;
+        
+        
+//     }
+// }
+
 template <typename ScalarType>
 static inline auto EncodeQuaternions(const Eigen::Quaternion<ScalarType> &q1,
                                      const Eigen::Quaternion<ScalarType> &q2 = Eigen::Quaternion<ScalarType>::Identity(),
@@ -159,6 +220,10 @@ static inline auto EncodeQuaternions(const Eigen::Quaternion<ScalarType> &q1,
         using namespace std;
         uint8_t mark = 3;
         auto q = _q;
+        Eigen::Index index;
+        q.coeffs().cwiseAbs().maxCoeff(&index);
+        if (q.coeffs()(index) < 0)
+            q.coeffs() *= -1;
         q.normalize();
         ScalarType min = abs(q.w());
         ScalarType fp1, fp2, fp3;

@@ -28,6 +28,90 @@
 #include "UdpChannel.hpp"
 
 
+#include "DataParser.hpp"
+#include "protocol.hpp"
+#include "CRC.h"
+
+namespace Protocol
+{
+    template <>
+    struct SocketParser<FullbodyCmd, FullbodyCmd>
+    {
+        using BinBuffer = std::span<std::byte>;
+        using SenderType = FullbodyCmd;
+        using ReceiverType = FullbodyCmd;
+        static constexpr size_t SenderMsgSize = 112;
+        static constexpr size_t ReceiverMsgSize = 112;
+
+        static inline void Encode(const SenderType &state, BinBuffer &buffer)
+        {
+		std::cout<<"illegal call from FullbodyCmd Encode, unused function"<<std::endl;
+            return;
+        }
+
+        static inline void Decode(const BinBuffer &buffer, ReceiverType &data)
+        {
+		memset(&data, 0, sizeof(data));
+		uint16_t crc = CRC::CalculateBits(buffer.data(), ReceiverMsgSize - sizeof(FullbodyCmd::crc_bits),
+				CRC::CRC_16_KERMIT());
+		if (crc != *(uint16_t*)&buffer[ReceiverMsgSize - sizeof(FullbodyCmd::crc_bits)])
+		{
+			throw std::runtime_error("CRC check failed");
+		}
+
+		size_t _offset = 0;
+
+		data.header = *(decltype(data.header)*)(&buffer[_offset]);
+		_offset += sizeof(data.header);
+		data.mask = *(decltype(data.mask)*)(&buffer[_offset]);
+		_offset += sizeof(data.mask);
+		data.cnt = *(decltype(data.cnt)*)(&buffer[_offset]);
+		_offset += sizeof(data.cnt);
+		data.time = *(decltype(data.time)*)(&buffer[_offset]);
+		_offset += sizeof(data.time);
+		data.base_x = *(decltype(data.base_x)*)(&buffer[_offset]);
+		_offset += sizeof(data.base_x);
+		data.base_y = *(decltype(data.base_y)*)(&buffer[_offset]);
+		_offset += sizeof(data.base_y);
+		data.base_z = *(decltype(data.base_z)*)(&buffer[_offset]);
+		_offset += sizeof(data.base_z);
+		data.left_hand_pos = *(decltype(data.left_hand_pos)*)(&buffer[_offset]);
+		_offset += sizeof(data.left_hand_pos);
+		data.right_hand_pos = *(decltype(data.right_hand_pos)*)(&buffer[_offset]);
+		_offset += sizeof(data.right_hand_pos);
+		// data.rotation_upper = *(decltype(data.rotation_upper)*)(&buffer[_offset]);
+		// _offset += sizeof(data.rotation_upper);
+		// data.rotation_lower = *(decltype(data.rotation_lower)*)(&buffer[_offset]);
+		// _offset += sizeof(data.rotation_lower);
+		memcpy(&data.base_quat, &buffer[_offset], sizeof(data.base_quat));
+		_offset += sizeof(data.base_quat);
+		memcpy(&data.left_hand_quat, &buffer[_offset], sizeof(data.left_hand_quat));
+		_offset += sizeof(data.left_hand_quat);
+		memcpy(&data.right_hand_quat, &buffer[_offset], sizeof(data.right_hand_quat));
+		_offset += sizeof(data.right_hand_quat);
+		data.base_vel = *(decltype(data.base_vel)*)(&buffer[_offset]);
+		_offset += sizeof(data.base_vel);
+		data.base_omega = *(decltype(data.base_omega)*)(&buffer[_offset]);
+		_offset += sizeof(data.base_omega);
+		data.left_hand_vel = *(decltype(data.left_hand_vel)*)(&buffer[_offset]);
+		_offset += sizeof(data.left_hand_vel);
+		data.right_hand_vel = *(decltype(data.right_hand_vel)*)(&buffer[_offset]);
+		_offset += sizeof(data.right_hand_vel);
+		data.left_hand_omega = *(decltype(data.left_hand_omega)*)(&buffer[_offset]);
+		_offset += sizeof(data.left_hand_omega);
+		data.right_hand_omega = *(decltype(data.right_hand_omega)*)(&buffer[_offset]);
+		_offset += sizeof(data.right_hand_omega);
+		data.right_gripper_ctrl = *(decltype(data.right_gripper_ctrl)*)(&buffer[_offset]);
+		_offset += sizeof(data.right_gripper_ctrl);
+		data.left_gripper_ctrl = *(decltype(data.left_gripper_ctrl)*)(&buffer[_offset]);
+		_offset += sizeof(data.left_gripper_ctrl);
+		data.crc_bits = *(decltype(data.crc_bits)*)(&buffer[_offset]);
+
+		return;
+        }
+    };
+} // namespace Protocol
+
 
 namespace Schedule{
 
@@ -37,7 +121,7 @@ namespace Schedule{
 	class TargetReceiveTask : public TaskBase
 	{
 	public:
-		using channelType = UdpChannel<SocketParser<FullbodyState, FullbodyState>>;
+		using channelType = UdpChannel<SocketParser<FullbodyCmd, FullbodyCmd>>;
 		TargetReceiveTask(std::string remote_ip, int remote_port, std::string local_ip, int local_port):
 			remote_ip_(remote_ip),
 			remote_port_(remote_port),
@@ -110,15 +194,29 @@ namespace WHU_ROBOT{
 		TargetReceiveTask transmit_task;
 		void cmdPublish(const Eigen::Vector3f& position,
                                const Eigen::Quaternionf& orientation);
+		auto decodePacket(const FullbodyCmd& packet) -> std::tuple<Eigen::Vector3f, Eigen::Quaternionf>{
+			Eigen::Vector3f _position;
+			Eigen::Quaternionf _orientation;
+
+			_position << packet.base_x, packet.base_y, packet.base_z;
+			memcpy(_orientation.coeffs().data(), &packet.base_quat, sizeof(packet.base_quat));
+
+			return {_position, _orientation};
+		}
+		auto decodePacket(const FullbodyState& packet) -> std::tuple<Eigen::Vector3f, Eigen::Quaternionf>{
+			return {packet.base_pos, packet.base_quat};
+		}
 	};
 
 	void CarCmd2ROSHandler::exec(void){
 		auto rec_buf = transmit_task.channel_ptr->get_receiver_buffer();
 
-		std::shared_ptr<FullbodyState> data_ptr;
+		std::shared_ptr<FullbodyCmd> data_ptr; 					//attention received data type!
 		if(rec_buf->try_pop(data_ptr)){
 			ROS_INFO("get command data");
-			cmdPublish(data_ptr->base_pos, data_ptr->base_quat);
+			auto [_position, _orientation] = decodePacket(*data_ptr);
+
+			cmdPublish(_position, _orientation);
 		}
 	}
 
