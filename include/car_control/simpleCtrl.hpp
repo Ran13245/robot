@@ -9,7 +9,7 @@
 
 namespace WHU_ROBOT{
 
-	class SimpleCtrl : public CarControllerBase{
+	class SimpleCtrl final : public CarControllerBase{
 	public:
 		SimpleCtrl(const ctl_param_t& _param):
 			param{_param},
