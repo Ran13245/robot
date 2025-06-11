@@ -12,7 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!abandon!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 #pragma once
+#ifndef __RING_BUF_H
+#define __RING_BUF_H
 #include <RingBuf.hpp>
 class IMsgQueue
 {
@@ -75,3 +79,5 @@ private:
     std::shared_ptr<RingBuffer<T>> queue_;
     size_t capacity_;
 };
+
+#endif
