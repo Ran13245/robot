@@ -195,11 +195,11 @@ inline void OdomExporter::addOdom(const uint64_t& time,
 inline OdomExporter::OdomExporter(const param_t& _param):
 	param{_param},
 	io_context{},
-	channel(io_context, param.odom_remote_ip, param.odom_remote_port, 
-		param.odom_local_ip, param.odom_local_port),
+	channel(io_context, param.odom_local_ip, param.odom_local_port, 
+		param.odom_remote_ip, param.odom_remote_port),
 	send_mq(RingBuffer<nav_state_msg>{10})
 {
-
+	std::cout<<"OdomExporter constructing"<<std::endl;
 }
 
 
@@ -247,12 +247,15 @@ inline void OdomExporter::init(void){
 }
 
 inline void OdomExporter::stop(void){
-	std::cout << "PointCloudExporter Stopping..." << std::endl;
+	if(param.enable_odom_trans){
+	std::cout << "OdomExporter Stopping..." << std::endl;
 	// if(transmit_task_ptr_)transmit_task_ptr_->stop();
 	// if(transmit_odom_msg_queue_ptr_) delete transmit_odom_msg_queue_ptr_;
 	io_context.stop();
 		// while(!t.joinable()) {std::cout<<"CarCmd2ROSHandler: waiting thread joinable"<<std::endl;}
 		t.join();
+	std::cout << "OdomExporter Stopped" << std::endl;
+	}
 }
 
 

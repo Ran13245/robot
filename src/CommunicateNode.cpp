@@ -37,6 +37,6 @@ int main(int argc, char** argv)
     std::cout<<"Failed: "<< e.what()<<std::endl;
     throw;
   }
-
+    std::cout<<"CommunicateNode END" <<std::endl;
     return 0;
 }

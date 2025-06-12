@@ -35,7 +35,6 @@
 #include "itc/backend/RingBuf.hpp"
 #include "comm_channel.hpp"
 #include "whole_body_msg/whole_body_receiver.hpp"
-#include "whole_body_msg/whole_body_sender.hpp"
 #include "whole_body_msg/whole_body_msg.h"
 
 // namespace Protocol
@@ -182,10 +181,11 @@ namespace WHU_ROBOT{
 			nh{_nh},
 			param{_param},
 			io_context{},
-			channel(io_context, param.car_cmd_remote_ip, param.car_cmd_remote_port, 
-				param.car_cmd_local_ip, param.car_cmd_local_port),
+			channel(io_context, param.car_cmd_local_ip, param.car_cmd_local_port, 
+				param.car_cmd_remote_ip, param.car_cmd_remote_port),
 			recv_mq(RingBuffer<whole_body_msg>{10})
 		{
+			std::cout<<"CarCmd2ROSHandler constructing"<<std::endl;
 			target_odom_pub = nh.advertise<nav_msgs::Odometry>(param.target_odom_topic, 10);
 		}
 
@@ -202,8 +202,11 @@ namespace WHU_ROBOT{
 
 		asio::io_context io_context;
 		std::thread t;
-		CommChannel<ChannelMode::UDP, WholeBodySender, WholeBodyReceiver> channel;
+		CommChannel<ChannelMode::UDP, WholeBodyReceiver> channel;
 		MsgQueue recv_mq;
+
+		asio::executor_work_guard<asio::io_context::executor_type> work_guard = 
+			asio::make_work_guard(io_context);
 
 		// TargetReceiveTask transmit_task;
 		void cmdPublish(const Eigen::Vector3f& position,
@@ -251,7 +254,8 @@ namespace WHU_ROBOT{
 		// }
 
 		whole_body_msg recv_data;
-		while(recv_mq.size()){
+		// std::cout << "DEBUG:---------------------"<<recv_mq.size()<<std::endl;
+		if(!recv_mq.empty()){
 			recv_mq.dequeue(recv_data);
 			ROS_INFO("get command data");
 			auto [_position, _orientation] = decodePacket(recv_data);
@@ -275,12 +279,14 @@ namespace WHU_ROBOT{
 
 
 	void CarCmd2ROSHandler::stop(void){
+		std::cout << "CarCmd2ROSHandler Stopping..." << std::endl;
 		// transmit_task.stop();
 		io_context.stop();
 		// while(!t.joinable()) {std::cout<<"CarCmd2ROSHandler: waiting thread joinable"<<std::endl;}
 		t.join();
+		std::cout << "CarCmd2ROSHandler Stopped" << std::endl;
 
-		ROS_INFO("CarCmd2ROS stop");
+		// ROS_INFO("CarCmd2ROS stop");
 	}
 
 	inline void CarCmd2ROSHandler::cmdPublish(const Eigen::Vector3f& position,

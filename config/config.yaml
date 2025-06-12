@@ -12,9 +12,9 @@ enable_pcd_trans: false
 
 
 #odom
-odom_remote_ip: 192.168.1.102
+odom_remote_ip: 0.0.0.0
 odom_remote_port: 5002
-odom_local_ip: 192.168.1.5
+odom_local_ip: 0.0.0.0
 odom_local_port: 5003
 enable_odom_trans: false
 
