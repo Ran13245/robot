@@ -70,7 +70,7 @@ namespace Schedule{
 		{
 			// std::cout << "333" << std::endl;
         //     std::cout.flush();
-
+			std::cout <<"!!!!!!!!packsize:"<< SocketParser<_SenderType, DummyReceiver>::SenderMsgSize <<std::endl;
 			channelType channel(io_context,
 					local_ip_, local_port_,
 					remote_ip_, remote_port_);
