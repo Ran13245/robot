@@ -47,8 +47,8 @@ include_directories(
   ${PCL_INCLUDE_DIRS}
   /usr/include
   include
-  # include/point_interface
-  include/net_interface
+  include/point_interface
+  # include/net_interface
   include/communicate
   include/car_control
   inter-process-comm
