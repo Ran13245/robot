@@ -17,7 +17,7 @@
 
 
 #include "configParser.hpp"
-#include "PointCloudExporter.hpp"
+// #include "PointCloudExporter.hpp"
 #include "OdomExporter.hpp"
 
 #include <chrono>
@@ -29,9 +29,9 @@ public:
 	SLAMROSHandler(const param_t& _param, const ros::NodeHandle& _nh): 
 		nh{_nh}, 
 		param{_param},
-		transmit_task{param.remote_ip, param.remote_port, 
-				param.local_ip, param.local_port},
-		exporter{transmit_task,param.enable_pcd_trans, param.enable_bin_save, 1024},
+		// transmit_task{param.remote_ip, param.remote_port, 
+		// 		param.local_ip, param.local_port},
+		// exporter{transmit_task,param.enable_pcd_trans, param.enable_bin_save, 1024},
 		// odom_transmit_task{param.odom_remote_ip, param.odom_remote_port, 
 		// 		param.odom_local_ip, param.odom_local_port},
 		// odom_exporter{odom_transmit_task, param.enable_odom_trans}
@@ -53,8 +53,8 @@ private:
 	param_t param;
 	ros::Subscriber cloud_sub;
 	ros::Subscriber odom_sub;
-	PointCloudExporter exporter;
-	PCDTransmitTask transmit_task;
+	// PointCloudExporter exporter;
+	// PCDTransmitTask transmit_task;
 
 	OdomExporter odom_exporter;
 	// OdomTransmitTask odom_transmit_task;
@@ -64,15 +64,15 @@ private:
 };
 
 inline void SLAMROSHandler::init(void){
-	exporter.init();
+	// exporter.init();
 	odom_exporter.init();
 }
 
 inline void SLAMROSHandler::stop(void){
-	exporter.stop();
+	// exporter.stop();
 	odom_exporter.stop();
 	ROS_INFO("Saving point cloud data to binary file: %s", param.cloud_export_path.c_str());
-	exporter.saveToBinaryFile(param.cloud_export_path,4);
+	// exporter.saveToBinaryFile(param.cloud_export_path,4);
 }
 
 inline void SLAMROSHandler::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg){
@@ -85,7 +85,7 @@ inline void SLAMROSHandler::cloudCallback(const sensor_msgs::PointCloud2ConstPtr
 	
 	auto t0 = std::chrono::steady_clock::now();
 
-	exporter.addPoints(cloud);
+	// exporter.addPoints(cloud);
 	
 	auto t1 = std::chrono::steady_clock::now();
 	ROS_INFO("Added points to exporter in %.3f ms", std::chrono::duration<double, std::milli>(t1 - t0).count());

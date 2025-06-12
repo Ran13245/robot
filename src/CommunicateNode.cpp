@@ -5,6 +5,7 @@
 
 int main(int argc, char** argv)
 {
+    try{
 	std::cout << "WHU Robot Communication Node Starting..." << std::endl;
 
     ros::init(argc, argv, "WHUrobot_communicate_node");
@@ -32,6 +33,10 @@ int main(int argc, char** argv)
 
     slam_handler.stop();
     cmd_handler.stop();
+    } catch (const std::exception& e) {
+    std::cout<<"Failed: "<< e.what()<<std::endl;
+    throw;
+  }
 
     return 0;
 }

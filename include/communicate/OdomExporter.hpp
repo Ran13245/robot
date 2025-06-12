@@ -7,7 +7,7 @@
 #include <tuple>
 #include <algorithm>
 
-#include "base_type.hpp"
+// #include "base_type.hpp"
 
 #include <Eigen/Eigen>
 
@@ -24,7 +24,6 @@
 
 #include "itc/backend/RingBuf.hpp"
 #include "comm_channel.hpp"
-#include "dummy_msg/dummy_receiver.hpp"
 #include "nav_state_msg/nav_state_sender.hpp"
 #include "nav_state_msg/nav_state_msg.h"
 
@@ -113,7 +112,7 @@ private:
 
 	asio::io_context io_context;
 	std::thread t;
-	CommChannel<ChannelMode::UDP, NavStateSender, DummyReceiver> channel;
+	CommChannel<ChannelMode::UDP, NavStateSender> channel;
 	MsgQueue send_mq;
 	// bool enable_odom_trans_; 
 };
@@ -129,9 +128,15 @@ inline void OdomExporter::addOdom(const uint64_t& time,
 	data.cnt = __cnt++;
 	data.time = time;
 
-	Eigen::Map<Eigen::Vector3f>(data.base_pos.data()) = base_pos;
+	data.base_pos[0] = base_pos.x();
+	data.base_pos[1] = base_pos.y();
+	data.base_pos[2] = base_pos.z();
 	data.base_pos[3] = 0.0f;
-	Eigen::Map<Eigen::Quaternionf>(data.base_quat.data()) = base_quat;
+		
+	data.base_quat[0] = base_quat.w();
+	data.base_quat[1] = base_quat.x();
+	data.base_quat[2] = base_quat.y();
+	data.base_quat[3] = base_quat.z();
 
 	send_mq.enqueue(std::move(data));
 
@@ -246,7 +251,7 @@ inline void OdomExporter::stop(void){
 	// if(transmit_task_ptr_)transmit_task_ptr_->stop();
 	// if(transmit_odom_msg_queue_ptr_) delete transmit_odom_msg_queue_ptr_;
 	io_context.stop();
-		while(!t.joinable()) {std::cout<<"CarCmd2ROSHandler: waiting thread joinable"<<std::endl;}
+		// while(!t.joinable()) {std::cout<<"CarCmd2ROSHandler: waiting thread joinable"<<std::endl;}
 		t.join();
 }
 

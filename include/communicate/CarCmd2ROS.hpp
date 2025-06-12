@@ -7,7 +7,7 @@
 #include <tuple>
 #include <algorithm>
 
-#include "base_type.hpp"
+// #include "base_type.hpp"
 
 #include <Eigen/Eigen>
 
@@ -221,10 +221,21 @@ namespace WHU_ROBOT{
 		// 	return {packet.base_pos, packet.base_quat};
 		// }
 		auto decodePacket(const whole_body_msg& packet) -> std::tuple<Eigen::Vector3f, Eigen::Quaternionf>{
-			return {
-				Eigen::Map<Eigen::Vector3f>{packet.base_pos.data()}, 
-				Eigen::Map<Eigen::Quaternionf>{packet.base_quat.data()}
-			};
+			    // Copy the first three floats into a Vector3f
+			Eigen::Vector3f pos;
+			pos << packet.base_pos[0],
+				packet.base_pos[1],
+				packet.base_pos[2];
+
+			// Copy all four floats into a Quaternionf (w, x, y, z)
+			Eigen::Quaternionf quat(
+				packet.base_quat[0],  // w
+				packet.base_quat[1],  // x
+				packet.base_quat[2],  // y
+				packet.base_quat[3]   // z
+			);
+
+			return { pos, quat };
 		}
 	};
 
@@ -266,7 +277,7 @@ namespace WHU_ROBOT{
 	void CarCmd2ROSHandler::stop(void){
 		// transmit_task.stop();
 		io_context.stop();
-		while(!t.joinable()) {std::cout<<"CarCmd2ROSHandler: waiting thread joinable"<<std::endl;}
+		// while(!t.joinable()) {std::cout<<"CarCmd2ROSHandler: waiting thread joinable"<<std::endl;}
 		t.join();
 
 		ROS_INFO("CarCmd2ROS stop");

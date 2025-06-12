@@ -8,13 +8,13 @@ local_ip: 192.168.1.5
 local_port: 5001
 
 enable_bin_save: false
-enable_pcd_trans: true
+enable_pcd_trans: false
 
 
 #odom
-odom_remote_ip: 127.0.0.1
+odom_remote_ip: 192.168.1.102
 odom_remote_port: 5002
-odom_local_ip: 127.0.0.1
+odom_local_ip: 192.168.1.5
 odom_local_port: 5003
 enable_odom_trans: false
 
