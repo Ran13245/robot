@@ -29,103 +29,18 @@
 #include "cloud_msg/cloud_msg.h"
 
 
-// #include "TaskBase.hpp"
-// #include "DataParser.hpp"
-// #include "RingBuf.hpp"
-// #include "UdpChannel.hpp"
-
 static constexpr size_t PACKET_MTU = 1400; // 可调整
 using _PacketType = PointPacket<CompressedPoint, PACKET_MTU>;
-// using _SenderType = std::span<std::byte>;
 using _SenderType = cloud_msg;
 
-// namespace Protocol{
-
-
-// 	template <>
-// 	struct SocketParser<_SenderType, DummyReceiver>
-// 	{
-// 		using BinBuffer = std::span<std::byte>;
-// 		using SenderType = _SenderType;
-// 		using ReceiverType = DummyReceiver;
-// 		static constexpr size_t SenderMsgSize = _PacketType::TotalByte;
-// 		static constexpr size_t ReceiverMsgSize = sizeof(DummyReceiver);
-// 		static constexpr void Encode(const SenderType &data, BinBuffer &buffer) {};
-// 		static constexpr void Decode(const BinBuffer &buffer, ReceiverType &data) {};
-// 	};
-// };
-
-
-
-// namespace Schedule{
-
-// 	using namespace IO_Comm;
-// 	using namespace Protocol;
-
-// 	class PCDTransmitTask : public TaskBase
-// 	{
-// 	public:
-// 		using channelType = UdpChannel<SocketParser<_SenderType, DummyReceiver>>;
-// 		PCDTransmitTask(std::string remote_ip, int remote_port, std::string local_ip, int local_port):
-// 			remote_ip_(remote_ip),
-// 			remote_port_(remote_port),
-// 			local_ip_(local_ip),
-// 			local_port_(local_port)
-// 		{}
-
-// 		~PCDTransmitTask(){}
-// 	protected:
-// 		void task() override	
-// 		{
-// 			// std::cout << "333" << std::endl;
-//         //     std::cout.flush();
-
-// 			channelType channel(io_context,
-// 					local_ip_, local_port_,
-// 					remote_ip_, remote_port_);
-// 			auto cld_msg_queue = quiry_msg_queue("PoindCloudPacket");
-// 			auto typed_ptr = std::static_pointer_cast<RingBuffer<std::shared_ptr<_SenderType>>>(cld_msg_queue->getRawBuffer());
-// 			channel.register_sender_buffer(typed_ptr);
-// 			channel.enable_sender();
-// 			io_context.run();
-		
-// 		}
-
-// 		void stop() override
-// 		{
-// 			std::cout << "io_context Stopping" << std::endl;
-// 			io_context.stop();
-// 			TaskBase::stop();
-// 			std::cout << "PCDTransmitTask Stopped" << std::endl;
-// 		}
-// 	private:
-// 		asio::io_context io_context;
-
-// 		std::string remote_ip_;
-// 		int remote_port_;
-// 		std::string local_ip_;
-// 		int local_port_;
-// 	};
-
-// };
 
 
 namespace WHU_ROBOT{
 
 
-// using namespace IO_Comm;
-// using namespace Protocol;
-// using namespace Schedule;
-
-
-
 class PointCloudExporter {
 	using _PollType = PointPoll<CompressedPoint>;
 public:
-
-	// explicit PointCloudExporter(size_t initial_pool_size = 1024);
-
-	// explicit PointCloudExporter(TaskBase& transmit_task,bool enable_pcd_trans = false, bool enable_bin_save = true, size_t initial_pool_size = 1024);
 
 	explicit PointCloudExporter(const param_t& _param, size_t initial_pool_size = 1024);
 
@@ -259,8 +174,6 @@ inline void PointCloudExporter::init(void){
 inline void PointCloudExporter::stop(void){
 	if(param.enable_pcd_trans){
 	std::cout << "PointCloudExporter Stopping..." << std::endl;
-	// if(transmit_task_ptr_)transmit_task_ptr_->stop();
-	// if(transmit_poll_msg_queue_ptr_) delete transmit_poll_msg_queue_ptr_;
 		io_context.stop();
 		t.join();
 	std::cout << "PointCloudExporter Stopped" << std::endl;

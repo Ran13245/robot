@@ -29,12 +29,6 @@ public:
 	SLAMROSHandler(const param_t& _param, const ros::NodeHandle& _nh): 
 		nh{_nh}, 
 		param{_param},
-		// transmit_task{param.remote_ip, param.remote_port, 
-		// 		param.local_ip, param.local_port},
-		// exporter{transmit_task,param.enable_pcd_trans, param.enable_bin_save, 1024},
-		// odom_transmit_task{param.odom_remote_ip, param.odom_remote_port, 
-		// 		param.odom_local_ip, param.odom_local_port},
-		// odom_exporter{odom_transmit_task, param.enable_odom_trans}
 		odom_exporter{param},
 		cloud_exporter{param}
 	{
