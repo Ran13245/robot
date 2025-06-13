@@ -185,60 +185,6 @@ inline void PointCloudExporter::stop(void){
 	}
 }
 
-// inline void PointCloudExporter::addPoints(const pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr& _cloud)
-// {
-// 	static size_t pcd_sample_cnt = 0; // 初始池大小
-
-// // bool flag = 0;
-
-// // /*----------------debug-------------------------------- */
-// //     pcl::PointXYZINormal min_pt, max_pt;
-// //     pcl::getMinMax3D(*_cloud, min_pt, max_pt);
-
-// //     std::cout << "\033[32m" << "X min: " << min_pt.x
-// //               << ", X max: " << max_pt.x << "\033[0m"
-// //               << std::endl;
-// // 	std::cout << "\033[32m" << "Y min: " << min_pt.y
-// // 		<< ", Y max: " << max_pt.y << "\033[0m"
-// // 		<< std::endl;
-// // 	std::cout << "\033[32m" << "Z min: " << min_pt.z
-// // 		<< ", Z max: " << max_pt.z << "\033[0m"
-// // 		<< std::endl;
-// // /*-------------debug-end-------------------------------*/
-
-// 	pcd_sample_cnt++;
-// 	pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr cloud = cloudFilter(_cloud);
-
-// 	std::cout << "\033[32m" << "filter: "<< _cloud->points.size() 
-// 		<< " -> "<< cloud->points.size() <<" get rid of "
-// 		<<_cloud->points.size() - cloud->points.size() <<"\033[0m" << std::endl;
-	
-// 	for (const auto& pt : cloud->points) {
-// 		CompressedPoint base_pt{Eigen::Vector4f( pt.x, pt.y, pt.z, pt.intensity ), intensityToHeatmapRGBA( pt.intensity)};
-
-// // if(!flag){
-// // 	std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << pt.x<<" "<< pt.y<<" "<< pt.z<<"!!!!!!!!!!!!!!!!!!!!"<<std::endl;
-// // 	flag = 1;
-// // }
-// // 
-// 		if(enable_bin_save_)point_poll_.AddPoint(base_pt);
-
-// 		if(transmit_poll_ptr_ && (pcd_sample_cnt >= pcd_sample_cnt_limit))transmit_poll_ptr_->AddPoint(base_pt);
-// 	}
-
-// 	if(transmit_poll_ptr_ && (pcd_sample_cnt >= pcd_sample_cnt_limit)){
-// 		std::cout << "PointCloudTransmit: " << cloud->size() << " points added to transmit_poll." << std::endl;
-// 		transmit_poll_cnt_++;
-// 		if(transmit_poll_cnt_ >= transmit_poll_cnt_limit){
-// 			transmit_poll_cnt_ = 0;
-// 			transmitCloud();
-// 			// transmit_poll_ptr_ = std::make_shared<PointPoll<CompressedPoint>>(initial_pool_size_);
-// 			transmit_poll_ptr_->clear();
-// 		}
-// 	}
-
-// 	if(pcd_sample_cnt >= pcd_sample_cnt_limit)pcd_sample_cnt = 0;
-// }
 
 /**	
 *	TODO，需求: 
