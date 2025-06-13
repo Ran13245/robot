@@ -48,9 +48,11 @@ include_directories(
   /usr/include
   include
   include/point_interface
-  include/net_interface
+  # include/net_interface
   include/communicate
   include/car_control
+  inter-process-comm
+  inter-process-comm/msgs
 )
 
 add_definitions(${PCL_DEFINITIONS})
