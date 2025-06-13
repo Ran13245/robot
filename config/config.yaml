@@ -25,4 +25,4 @@ car_cmd_remote_port: 12345
 car_cmd_local_ip: 192.168.1.5
 car_cmd_local_port: 54321
 target_odom_topic: /robot/targetOdom
-enable_cmd2ROS: true
+enable_cmd2ROS: false

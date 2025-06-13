@@ -14,6 +14,8 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
+#include "configParser.hpp"
+
 
 // #include "TaskBase.hpp"
 // #include "CtrlParser.hpp"
