@@ -29,10 +29,12 @@
 #include "cloud_msg/cloud_sender.hpp"
 #include "cloud_msg/cloud_msg.h"
 
+#include "algo.hpp"
 
 static constexpr size_t PACKET_MTU = 1400; // 可调整
 using _PacketType = PointPacket<CompressedPoint, PACKET_MTU>;
 using _SenderType = cloud_msg;
+using _PollType = PointPoll<CompressedPoint>;
 
 static constexpr size_t __pack_size = _PacketType::TotalByte;
 
@@ -40,7 +42,6 @@ namespace WHU_ROBOT{
 
 
 class PointCloudExporter {
-	using _PollType = PointPoll<CompressedPoint>;
 public:
 
 	explicit PointCloudExporter(const param_t& _param, size_t initial_pool_size = 1024);
@@ -60,12 +61,14 @@ private:
 	// static constexpr size_t transmit_poll_cnt_limit = 10; // transmit_poll到达此次数后发送
 	// static constexpr size_t pcd_sample_cnt_limit = 1; 
 	static constexpr size_t transmit_frame_cnt_limit = 10; //每多少帧雷达点云压一次传输包
+	static constexpr uint32_t neighbor_range = 3;//range_meter = 2^neighbor_range * 0.01
+	static constexpr size_t neighbor_limit_cnt = 10;
 
 	/*-----------------------------functions-----------------------------------------*/
 	uint32_t intensityToHeatmapRGBA(const float& _intensity);
 	// pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr cloudFilter(const 
 	// 	pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr& cloud, float resolution = filter_resolution);
-
+	bool pointAvailable(_PollType& current_global_poll, const Eigen::Vector3f& point);
 	// void transmitCloud(void);
 	void transmitCloud(_PollType& transmit_poll);
 	/*-----------------------------objs-----------------------------------------*/
@@ -255,18 +258,65 @@ inline void PointCloudExporter::stop(void){
 	5cm有大量点的话，是否还存入全局poll；
 	复制与内存分配耗时问题
 */	
-inline void PointCloudExporter::addPoints(const pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr& _cloud)
+inline void PointCloudExporter::addPoints(const pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr& cloud)
 {
+	constexpr int PatternVoxel = 8;
+
 // std::cout<<"DEBUG: CALL FROM addPoints"<<std::endl;
-	static size_t transmit_frame_cnt = 0;
-	transmit_frame_cnt++;
+	if(param.enable_bin_save || param.enable_pcd_trans){
+		static size_t transmit_frame_cnt = 0;
+		transmit_frame_cnt++;
 
-	if(transmit_frame_cnt >= transmit_frame_cnt_limit){
+		static _PollType transmit_poll{initial_pool_size_};
 
-		transmit_frame_cnt = 0;
+		size_t __cnt = 0;
+
+		auto raw_points = global_point_poll_.ExtractMember<uint64_t>(&CompressedPoint::morton_code);
+		std::sort(raw_points.begin(), raw_points.end());
+
+		for (const auto& pt : cloud->points) {
+			if (!std::isfinite(pt.x)) continue;
+
+			size_t neighborPointCount = RangeSearchCnt<PatternVoxel>(raw_points, 
+				Eigen::Vector3f{pt.x, pt.y, pt.z}, 
+				neighbor_range);
+
+			if(neighborPointCount <= neighbor_limit_cnt){
+				CompressedPoint base_pt{Eigen::Vector4f( pt.x, pt.y, pt.z, pt.intensity ), 
+					intensityToHeatmapRGBA( pt.intensity)};
+
+				global_point_poll_.AddPoint(base_pt);
+				transmit_poll.AddPoint(base_pt);
+
+				__cnt++;
+			}
+		}
+		std::cout<<"PointCloudExporter: get available point num: " << __cnt <<std::endl;
+
+		if(transmit_frame_cnt >= transmit_frame_cnt_limit){
+			transmitCloud(transmit_poll);
+			transmit_poll.clear();
+			transmit_frame_cnt = 0;
+		}
 	}
 	
-	
+}
+
+
+inline void PointCloudExporter::transmitCloud(_PollType& transmit_poll){
+	if(param.enable_pcd_trans){
+		std::cout << "cloud transmiting " << std::endl;
+		auto packets_ptr = transmit_poll.EncodePackets<_PacketType>(0, transmit_poll.size(), 4);
+
+		for(auto& pkt : *packets_ptr){
+			
+			send_mq.enqueue(std::move(pkt));
+			
+		}	
+		
+
+		std::cout << "cloud transmit enqueueed " << std::endl;
+	}
 }
 
 

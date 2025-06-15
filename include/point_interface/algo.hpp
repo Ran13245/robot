@@ -257,6 +257,129 @@ static inline auto PatternOffsets(const Eigen::Vector3f &center, const uint32_t 
 
 
 //TODO: 目前是返回周围点，包含了复制构造，修改使其只返回周围点的个数而不复制
+
+
+template <int PatternVoxel>
+static inline size_t RangeSearchCnt(const AlignedVector<uint64_t> &raw_points, 
+                                     const uint64_t &center, 
+                                     const uint32_t size)
+{
+    using namespace mortonnd;
+    constexpr MortonNDLutDecoder_3D_64 decoder;
+    
+    // 解码中心点坐标
+    auto [coord_x, coord_y, coord_z] = decoder.Decode(center);
+    const uint32_t width = 1 << (size - 1);
+    
+    // 计算空间块角点
+    uint32_t corner_x, corner_y, corner_z;
+    if constexpr (PatternVoxel == 8) {
+        corner_x = (coord_x % width) < (width >> 1) ? (coord_x / width - 1) * width : coord_x / width * width;
+        corner_y = (coord_y % width) < (width >> 1) ? (coord_y / width - 1) * width : coord_y / width * width;
+        corner_z = (coord_z % width) < (width >> 1) ? (coord_z / width - 1) * width : coord_z / width * width;
+    } else if constexpr (PatternVoxel == 19 || PatternVoxel == 27) {
+        corner_x = (coord_x / width - 1) * width;
+        corner_y = (coord_y / width - 1) * width;
+        corner_z = (coord_z / width - 1) * width;
+    } else if constexpr (PatternVoxel == 32) {
+        corner_x = (coord_x % width) < (width >> 1) ? (coord_x / width - 2) * width : (coord_x / width - 1) * width;
+        corner_y = (coord_y % width) < (width >> 1) ? (coord_y / width - 2) * width : (coord_y / width - 1) * width;
+        corner_z = (coord_z % width) < (width >> 1) ? (coord_z / width - 2) * width : (coord_z / width - 1) * width;
+    }
+
+    // 获取模式并生成起始点
+    auto patterns = GetPattern<PatternVoxel>();
+    std::array<uint64_t, PatternVoxel> start_pts;
+    constexpr MortonNDLutEncoder_3D_64 encoder;
+    for (size_t i = 0; i < patterns.size(); ++i) {
+        const auto &pattern = patterns[i];
+        start_pts[i] = encoder.Encode(
+            corner_x + pattern[0] * width,
+            corner_y + pattern[1] * width,
+            corner_z + pattern[2] * width
+        );
+    }
+    
+    // 排序起始点
+    std::sort(start_pts.begin(), start_pts.end());
+    
+    // 计算块偏移量（块大小-1）
+    const uint64_t block_offset = (1ULL << ((size - 1) * 3)) - 1;
+    
+    size_t count = 0;
+    for (const auto &start_pt : start_pts) {
+        uint64_t end_pt = start_pt + block_offset;
+        auto it_start = std::lower_bound(raw_points.begin(), raw_points.end(), start_pt);
+        auto it_end = std::upper_bound(raw_points.begin(), raw_points.end(), end_pt);
+        count += std::distance(it_start, it_end);
+    }
+    
+    return count;
+}
+
+template <int PatternVoxel>
+static inline size_t RangeSearchCnt(const AlignedVector<uint64_t> &raw_points, 
+                                   const Eigen::Vector3f &center, 
+                                   const uint32_t size)
+{
+    using namespace mortonnd;
+    constexpr MortonNDLutEncoder_3D_64 encoder;
+    
+    // 坐标转换：浮点数坐标 -> 整数坐标
+    constexpr int coord_offset = 1 << 20;
+    const uint32_t coord_x = std::floor(center.x() * 100) + coord_offset;
+    const uint32_t coord_y = std::floor(center.y() * 100) + coord_offset;
+    const uint32_t coord_z = std::floor(center.z() * 100) + coord_offset;
+    
+    const uint32_t width = 1 << (size - 1);
+    const uint64_t block_offset = (1ULL << ((size - 1) * 3)) - 1;
+    
+    // 计算空间块角点
+    uint32_t corner_x, corner_y, corner_z;
+    if constexpr (PatternVoxel == 8) {
+        corner_x = (coord_x % width) < (width >> 1) ? (coord_x / width - 1) * width : coord_x / width * width;
+        corner_y = (coord_y % width) < (width >> 1) ? (coord_y / width - 1) * width : coord_y / width * width;
+        corner_z = (coord_z % width) < (width >> 1) ? (coord_z / width - 1) * width : coord_z / width * width;
+    } else if constexpr (PatternVoxel == 19 || PatternVoxel == 27) {
+        corner_x = (coord_x / width - 1) * width;
+        corner_y = (coord_y / width - 1) * width;
+        corner_z = (coord_z / width - 1) * width;
+    } else if constexpr (PatternVoxel == 32) {
+        corner_x = (coord_x % width) < (width >> 1) ? (coord_x / width - 2) * width : (coord_x / width - 1) * width;
+        corner_y = (coord_y % width) < (width >> 1) ? (coord_y / width - 2) * width : (coord_y / width - 1) * width;
+        corner_z = (coord_z % width) < (width >> 1) ? (coord_z / width - 2) * width : (coord_z / width - 1) * width;
+    }
+
+    // 生成模式起始点
+    auto patterns = GetPattern<PatternVoxel>();
+    std::array<uint64_t, PatternVoxel> start_pts;
+    for (size_t i = 0; i < patterns.size(); ++i) {
+        const auto &pattern = patterns[i];
+        start_pts[i] = encoder.Encode(
+            corner_x + pattern[0] * width,
+            corner_y + pattern[1] * width,
+            corner_z + pattern[2] * width
+        );
+    }
+    
+    // 排序起始点
+    std::sort(start_pts.begin(), start_pts.end());
+    
+    // 计数器代替结果向量
+    size_t count = 0;
+    
+    // 遍历所有模式块并计数
+    for (const auto &start_pt : start_pts) {
+        uint64_t end_pt = start_pt + block_offset;
+        auto it_start = std::lower_bound(raw_points.begin(), raw_points.end(), start_pt);
+        auto it_end = std::upper_bound(raw_points.begin(), raw_points.end(), end_pt);
+        count += std::distance(it_start, it_end);
+    }
+    
+    return count;
+}
+
+
 template <int PatternVoxel>
 static inline AlignedVector<uint64_t> RangeSearch(const AlignedVector<uint64_t> &raw_points, const uint64_t &center, const uint32_t size)
 {

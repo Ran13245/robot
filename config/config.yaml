@@ -7,7 +7,7 @@ remote_port: 5000
 local_ip: 192.168.1.5
 local_port: 5001
 
-enable_bin_save: false
+enable_bin_save: true
 enable_pcd_trans: false
 
 

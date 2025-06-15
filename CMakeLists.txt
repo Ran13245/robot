@@ -35,6 +35,7 @@ find_package(Eigen3 3.4 REQUIRED)
 find_package(PCL 1.8 REQUIRED)
 # find_package(PCL REQUIRED COMPONENTS common io filters)
 find_package(yaml-cpp REQUIRED)
+find_package(TBB REQUIRED)
 
 message(Eigen: ${EIGEN3_INCLUDE_DIR})
 
@@ -45,6 +46,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
+  ${TBB_INCLUDE_DIRS}
   /usr/include
   include
   include/point_interface
@@ -65,9 +67,9 @@ add_executable(WHUrobot_carcontrol_node src/CarControlNode.cpp)
 
 
 target_link_libraries(WHUrobot_communicate_node
-  ${catkin_LIBRARIES} Eigen3::Eigen ${PCL_LIBRARIES} ${YAML_CPP_LIBRARIES}
+  ${catkin_LIBRARIES} Eigen3::Eigen ${PCL_LIBRARIES} ${YAML_CPP_LIBRARIES} TBB::tbb
 )
 
 target_link_libraries(WHUrobot_carcontrol_node
-  ${catkin_LIBRARIES} Eigen3::Eigen ${YAML_CPP_LIBRARIES}
+  ${catkin_LIBRARIES} Eigen3::Eigen ${YAML_CPP_LIBRARIES} TBB::tbb
 )
