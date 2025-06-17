@@ -101,7 +101,7 @@ inline  PointCloudExporter::PointCloudExporter(const param_t& _param, size_t ini
 	io_context{},
 	channel(io_context, param.local_ip, param.local_port, 
 		param.remote_ip, param.remote_port),
-	send_mq(RingBuffer<_SenderType>{10})
+	send_mq(RingBuffer<_SenderType>{50})
 {
 	std::cout<<"PointCloudExporter constructing"<<std::endl;
 
@@ -164,9 +164,9 @@ inline void PointCloudExporter::init(void){
 		// std::cout << "transmit_task Starting..." << std::endl;
 		// transmit_task_ptr_->start();
 
-		channel.bind_message_queue("cloud_sender", ParserType::DirectSender, send_mq);
+		channel.bind_message_queue("cloud_sender", ParserType::Sender, send_mq);
 
-		while(!channel.enable_receiver()){std::cout<<
+		while(!channel.enable_sender()){std::cout<<
 			"PointCloudExporter: waiting enable_sender"<<std::endl;}
 
 		std::cout << "cloud transmit Starting..." << std::endl;

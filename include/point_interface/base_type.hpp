@@ -303,7 +303,7 @@ public:
         copyCnt.fetch_add(1);
         // memcpy(_points.data() + offset, packet._points.data(), Packet::TotalByte);
         Packet packet(_points.data() + offset);
-        zpp::bits::in{buffer, zpp::bits::size4b{}, zpp::bits::endian::big{}}(packet).or_throw();
+        zpp::bits::in{buffer, zpp::bits::size4b{}, zpp::bits::endian::little{}}(packet).or_throw();
         pointNum.fetch_add(packet.size());
         copyCnt.fetch_sub(1);
         return packet.size();
@@ -335,7 +335,7 @@ public:
                 Packet packet(_points.data() + startIndex + packet_index[j] * Packet::MaxPointNum);
                 packet.SetAttribute(0, Packet::MaxPointNum);
                 std::span<std::byte> currentView = std::span<std::byte>(this->internal_buffer.data() + packet_index[j] * Packet::TotalByte, Packet::TotalByte);
-                auto out = zpp::bits::out(currentView, zpp::bits::size4b{}, zpp::bits::endian::big{});
+                auto out = zpp::bits::out(currentView, zpp::bits::size4b{}, zpp::bits::endian::little{});
                 out(packet).or_throw();
                 {
                     std::unique_lock<std::mutex> lock(_mutex);
