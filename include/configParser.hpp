@@ -35,6 +35,9 @@ public:
 	bool enable_cmd2ROS;
 
 
+	std::string state_msg_sync_enable;
+	std::string state_msg_car_control_enable;
+
 	param_t(const std::string& filename){
 		try {
 			YAML::Node config = YAML::LoadFile(filename);
@@ -61,6 +64,10 @@ public:
 			car_cmd_local_port = config["car_cmd_local_port"].as<int>();
 			target_odom_topic = config["target_odom_topic"].as<std::string>();
 			enable_cmd2ROS = config["enable_cmd2ROS"].as<bool>();
+
+			state_msg_sync_enable = config["state_msg_sync_enable"].as<std::string>();
+			state_msg_car_control_enable = config["state_msg_car_control_enable"].as<std::string>();
+
 		} catch (const YAML::Exception& e) {
 			throw std::runtime_error("Error parsing configuration file: " + std::string(e.what()));
 		}

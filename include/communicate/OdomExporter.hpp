@@ -45,7 +45,21 @@ private:
 	std::thread t;
 	CommChannel<ChannelMode::UDP, NavStateSender> channel;
 	MsgQueue send_mq;
+
+	size_t sync_cnt = 0;
+
+	void pushSyncSignal(void);
+	size_t popSyncSignal(void);
 };
+
+inline 	void OdomExporter::pushSyncSignal(void){
+	sync_cnt++;
+	std::cout<<"OdomExporter: get sync request"<<std::endl;
+}
+
+inline size_t OdomExporter::popSyncSignal(void){
+	return sync_cnt>0 ? sync_cnt-- : 0;
+}
 
 inline void OdomExporter::addOdom(const uint64_t& time, 
 	const Eigen::Vector3f& base_pos, const Eigen::Quaternionf& base_quat)

@@ -18,6 +18,7 @@
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <tf/transform_datatypes.h>
+#include <std_msgs/Bool.h>
 
 #include "configParser.hpp"
 
@@ -42,6 +43,8 @@ namespace WHU_ROBOT{
 		{
 			std::cout<<"CarCmd2ROSHandler constructing"<<std::endl;
 			target_odom_pub = nh.advertise<nav_msgs::Odometry>(param.target_odom_topic, 10);
+			state_sync_pub = nh.advertise<std_msgs::Bool>(param.state_msg_sync_enable, 10);
+			state_car_enable_pub = nh.advertise<std_msgs::Bool>(param.state_msg_car_control_enable, 10);
 		}
 
 		~CarCmd2ROSHandler(){}
@@ -54,6 +57,8 @@ namespace WHU_ROBOT{
 		ros::NodeHandle nh;
 		param_t param;
 		ros::Publisher target_odom_pub;
+		ros::Publisher state_sync_pub;
+		ros::Publisher state_car_enable_pub;
 
 		asio::io_context io_context;
 		std::thread t;
@@ -81,8 +86,12 @@ namespace WHU_ROBOT{
 				packet.base_quat[3]   // z
 			);
 
+			maskParser(packet.mask);
+
 			return { pos, quat };
 		}
+
+		void maskParser(uint16_t& mask);
 	};
 
 	void CarCmd2ROSHandler::exec(void){
@@ -144,6 +153,39 @@ namespace WHU_ROBOT{
 
 		target_odom_pub.publish(odom_msg);
 	}
+
+	inline void CarCmd2ROSHandler::maskParser(uint16_t& mask){
+		static constexpr uint16_t MASK_CAR_ENABLE = 0b0100'0000'0000'0000;//base control
+		static constexpr uint16_t MASK_SYNC_ENABLE = 0b0000'0000'1000'0000;//pose request
+		
+		//--debug
+		std::cout << "mask = 0x"
+		<< std::hex << std::uppercase << std::setw(4) << std::setfill('0')
+		<< mask
+		<< std::dec    // 恢复为十进制输出格式
+		<< std::endl;
+		//--debug
+
+		std_msgs::Bool msg_sync;
+		std_msgs::Bool msg_car_enable;
+
+		if (mask & MASK_CAR_ENABLE) {
+			msg_car_enable.data = true;
+			state_car_enable_pub.publish(msg_car_enable);
+		} else {
+			msg_car_enable.data = false;
+			state_car_enable_pub.publish(msg_car_enable);
+		}
+
+		if (mask & MASK_SYNC_ENABLE) {
+			msg_sync.data = true;
+			state_sync_pub.publish(msg_sync);
+		} else {
+			msg_sync.data = false;
+			state_sync_pub.publish(msg_sync);
+		}
+	}
+
 
 };//namespace WHU_ROBOT
 
