@@ -64,6 +64,8 @@ private:
 	static constexpr uint32_t neighbor_range = 3;//range_meter = 2^neighbor_range * 0.01
 	static constexpr size_t neighbor_limit_cnt = 10;
 
+	static constexpr uint8_t process_type = 1;//1-查表，发增量	2-全局动态点云
+
 	/*-----------------------------functions-----------------------------------------*/
 	uint32_t intensityToHeatmapRGBA(const float& _intensity);
 	// pcl::PointCloud<pcl::PointXYZINormal>::ConstPtr cloudFilter(const 
@@ -210,39 +212,79 @@ inline void PointCloudExporter::addPoints(const pcl::PointCloud<pcl::PointXYZINo
 
 // std::cout<<"DEBUG: CALL FROM addPoints"<<std::endl;
 	if(param.enable_bin_save || param.enable_pcd_trans){
-		static size_t transmit_frame_cnt = 0;
-		transmit_frame_cnt++;
+		if constexpr(process_type == 1){
+			static size_t transmit_frame_cnt = 0;
+			transmit_frame_cnt++;
 
-		static _PollType transmit_poll{initial_pool_size_};
+			static _PollType transmit_poll{initial_pool_size_};
 
-		size_t __cnt = 0;
+			size_t __cnt = 0;
 
-		auto raw_points = global_point_poll_.ExtractMember<uint64_t>(&CompressedPoint::morton_code);
-		std::sort(raw_points.begin(), raw_points.end());
+			auto raw_points = global_point_poll_.ExtractMember<uint64_t>(&CompressedPoint::morton_code);
+			std::sort(raw_points.begin(), raw_points.end());
 
-		for (const auto& pt : cloud->points) {
-			if (!std::isfinite(pt.x)) continue;
+			for (const auto& pt : cloud->points) {
+				if (!std::isfinite(pt.x)) continue;
 
-			size_t neighborPointCount = RangeSearchCnt<PatternVoxel>(raw_points, 
-				Eigen::Vector3f{pt.x, pt.y, pt.z}, 
-				neighbor_range);
+				size_t neighborPointCount = RangeSearchCnt<PatternVoxel>(raw_points, 
+					Eigen::Vector3f{pt.x, pt.y, pt.z}, 
+					neighbor_range);
 
-			if(neighborPointCount <= neighbor_limit_cnt){
-				CompressedPoint base_pt{Eigen::Vector4f( pt.x, pt.y, pt.z, pt.intensity ), 
-					intensityToHeatmapRGBA( pt.intensity)};
+				if(neighborPointCount <= neighbor_limit_cnt){
+					CompressedPoint base_pt{Eigen::Vector4f( pt.x, pt.y, pt.z, pt.intensity ), 
+						intensityToHeatmapRGBA( pt.intensity)};
 
-				global_point_poll_.AddPoint(base_pt);
-				transmit_poll.AddPoint(base_pt);
+					global_point_poll_.AddPoint(base_pt);
+					transmit_poll.AddPoint(base_pt);
 
-				__cnt++;
+					__cnt++;
+				}
 			}
-		}
-		std::cout<<"PointCloudExporter: get available point num: " << __cnt <<std::endl;
+			std::cout<<"PointCloudExporter: get available point num: " << __cnt <<std::endl;
 
-		if(transmit_frame_cnt >= transmit_frame_cnt_limit){
-			transmitCloud(transmit_poll);
-			transmit_poll.clear();
-			transmit_frame_cnt = 0;
+			if(transmit_frame_cnt >= transmit_frame_cnt_limit){
+				transmitCloud(transmit_poll);
+				transmit_poll.clear();
+				transmit_frame_cnt = 0;
+			}
+		} else if constexpr (process_type == 2){
+
+			constexpr uint32_t __mask = 0xA0'00'00'00;
+
+			static size_t transmit_frame_cnt = 0;
+			transmit_frame_cnt++;
+
+			static _PollType transmit_poll{initial_pool_size_};
+
+			size_t __cnt = 0;
+
+			// auto raw_points = global_point_poll_.ExtractMember<uint64_t>(&CompressedPoint::morton_code);
+			// std::sort(raw_points.begin(), raw_points.end());
+
+			for (const auto& pt : cloud->points) {
+				if (!std::isfinite(pt.x)) continue;
+
+				// size_t neighborPointCount = RangeSearchCnt<PatternVoxel>(raw_points, 
+				// 	Eigen::Vector3f{pt.x, pt.y, pt.z}, 
+				// 	neighbor_range);
+
+				// if(neighborPointCount <= neighbor_limit_cnt){
+					CompressedPoint base_pt{Eigen::Vector4f( pt.x, pt.y, pt.z, pt.intensity ), 
+						intensityToHeatmapRGBA( pt.intensity),__mask};
+
+					// global_point_poll_.AddPoint(base_pt);
+					transmit_poll.AddPoint(base_pt);
+
+					__cnt++;
+				// }
+			}
+			std::cout<<"PointCloudExporter: get available point num: " << __cnt <<std::endl;
+
+			if(transmit_frame_cnt >= transmit_frame_cnt_limit){
+				transmitCloud(transmit_poll);
+				transmit_poll.clear();
+				transmit_frame_cnt = 0;
+			}
 		}
 	}
 	

@@ -2,9 +2,9 @@
 cloud_topic: /cloud_registered
 odom_topic: /Odometry
 cloud_export_path: /workspace/export_cloud.bin
-remote_ip: 192.168.1.180
+remote_ip: 192.168.1.105
 remote_port: 5000
-local_ip: 192.168.1.54
+local_ip: 192.168.1.5
 local_port: 5001
 
 enable_bin_save: false
@@ -20,9 +20,9 @@ enable_odom_trans: false
 
 
 #cmd2ROS 
-car_cmd_remote_ip: 192.168.1.180
+car_cmd_remote_ip: 0.0.0.0
 car_cmd_remote_port: 12345
-car_cmd_local_ip: 192.168.1.54
+car_cmd_local_ip: 0.0.0.0
 car_cmd_local_port: 54321
 target_odom_topic: /robot/targetOdom
 enable_cmd2ROS: false
