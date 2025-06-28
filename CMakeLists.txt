@@ -53,6 +53,7 @@ include_directories(
   # include/net_interface
   include/communicate
   include/car_control
+  include/boost
   inter-process-comm
   inter-process-comm/msgs
 )

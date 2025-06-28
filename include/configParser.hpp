@@ -95,6 +95,8 @@ public:
 	float max_v;
 	float max_w;
 
+	std::string state_msg_car_control_enable;
+
 	ctl_param_t(const std::string& filename){
 		try {
 			YAML::Node config = YAML::LoadFile(filename);
@@ -117,6 +119,9 @@ public:
 
 			max_v = config["max_v"].as<float>();
 			max_w = config["max_w"].as<float>();
+
+			state_msg_car_control_enable = config["state_msg_car_control_enable"].as<std::string>();
+
 
 		} catch (const YAML::Exception& e) {
 			throw std::runtime_error("Error parsing configuration file: " + std::string(e.what()));

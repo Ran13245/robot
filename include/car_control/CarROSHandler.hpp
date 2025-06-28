@@ -3,6 +3,7 @@
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <yhs_can_msgs/ctrl_cmd.h>
+#include <std_msgs/Bool.h>
 
 #include "CarControlBase.hpp"
 #include "configParser.hpp"
@@ -44,7 +45,7 @@ namespace WHU_ROBOT{
 
 		void odomCallback(const nav_msgs::OdometryConstPtr& msg);
 		void targetOdomCallback(const nav_msgs::OdometryConstPtr& msg);
-		void ctrlPublish(const CarState& cmd);\
+		void ctrlPublish(const CarState& cmd);
 
 		void stateControlEnableCallback(const std_msgs::Bool::ConstPtr& msg);
 	};

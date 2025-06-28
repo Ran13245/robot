@@ -6,78 +6,26 @@
 #include "pid.hpp"
 #include <cmath>
 #include <chrono>
+#include "boost/sml.hpp"
+#include <cstdio>
 
 namespace WHU_ROBOT{
 
-	class SimpleCtrl final : public CarControllerBase{
-	public:
-		SimpleCtrl(const ctl_param_t& _param):
+	namespace sml = boost::sml;
+
+	struct ControlInterface {
+	
+		ControlInterface(const ctl_param_t& _param):
 			param{_param},
 			pid_vx{param.p_vx, 0, param.d_vx, -param.max_v, param.max_v},
 			pid_vy{param.p_vy, 0, param.d_vy, -param.max_v, param.max_v},
 			pid_wz{param.p_wz, 0, param.d_wz, -param.max_w, param.max_w}
 		{
-			lastTime_ = Clock::now();
 
 		}
 
-		~SimpleCtrl() = default;
-
-		void feedTarget(const CarState& targetState) override {
-			__flag_get_target = 1;
-			target_pos = targetState.base_pos;
-			target_pos.z() = 0.0;
-			target_yaw = getYawDegrees(targetState.base_quat);
-		}
-
-		void feedCurrent(const CarState& currentState) override {
-			__flag_get_current = 1;
-			current_pos = currentState.base_pos;
-			current_pos.z() = 0.0;
-			current_yaw = getYawDegrees(currentState.base_quat);
-		}
-
-		CarState computeControlOnce(void) override {
-			Clock::time_point now = Clock::now();
-			std::chrono::duration<double> delta = now - lastTime_;
-			double dt = delta.count();
-			lastTime_ = now;
-
-			if(__flag_get_target && __flag_get_current){
-				if(euclideanDistance(current_pos, target_pos) >= param.brake_distance){
-					std::cout<<"\033[31m" << "brake_distance:" << "\033[0m" << std::endl;
-					std::cout<<"current position: "<< current_pos.transpose() <<std::endl;
-					std::cout<<"target position: "<< target_pos.transpose() <<std::endl;
-					pid_wz.reset();
-					pid_vx.reset();
-					pid_vy.reset();
-					return dataCapsu(1, 0,0,0);
-				}
-
-				if(std::abs(current_yaw - target_yaw) >= param.delta_yaw){
-					//4T4D
-					float wz = pid_wz.update(target_yaw, current_yaw, dt);
-					return dataCapsu(6, 0,0,wz);
-				} else if(euclideanDistance(current_pos, target_pos) >= param.delta_distance){
-					//parallel
-					float vx = pid_vx.update(target_pos.x(), current_pos.x(), dt);
-					float vy = pid_vy.update(target_pos.y(), current_pos.y(), dt);
-					return dataCapsu(8, vx,vy,0);
-				}else {
-					//free
-					pid_wz.reset();
-					pid_vx.reset();
-					pid_vy.reset();
-					return dataCapsu(2, 0,0,0);
-				}
-			}
-
-			std::cout<<"target or current never got"<<std::endl;
-			return dataCapsu(1, 0,0,0);
-		};
-	private:
 		//------------------------const-----------
-		static constexpr float __vx_when_spin = 0.1;
+		static constexpr float __vx_when_spin = 0.01;
 		//-----------------------obj-------------
 		ctl_param_t param;
 		PID pid_vx;
@@ -90,14 +38,17 @@ namespace WHU_ROBOT{
 		Eigen::Vector3f target_pos;
 		float target_yaw;
 
+		CarState compute_result;
+
 		//----------------------utils--------------
 		bool __flag_get_target = 0;
 		bool __flag_get_current = 0;
-		using Clock = std::chrono::steady_clock;
-		Clock::time_point lastTime_;
-		
-		//---------------------fcn-------------------
-		CarState dataCapsu(uint8_t mode, float vx, float vy, float wz){
+
+		bool enable_control = 0;
+
+		double last_dt = 0.0;
+
+		void generate_cmd(uint8_t mode, float vx, float vy, float wz){
 			static uint32_t __cnt = 0;
 			CarState rtn;
 			if(mode == 6){//4T4D
@@ -125,8 +76,225 @@ namespace WHU_ROBOT{
 				rtn.base_lin_vel.setZero();
 				rtn.base_ang_vel.setZero();
 			}
-			return rtn;
+			
+			compute_result = rtn;
 		}
+
+	};
+
+	namespace HSM{
+		//event
+		struct timetick {
+			double dt;
+		};
+
+		struct terminate {};
+
+		//guard
+		auto if_get_current = [](ControlInterface& interface){
+			return interface.__flag_get_current;
+		};
+
+		auto if_get_target = [](ControlInterface& interface){
+			return interface.__flag_get_target;
+		};
+
+		auto if_stop_flag = [](ControlInterface& interface){
+			return !interface.enable_control;
+		};
+
+		auto if_err_yaw = [](ControlInterface& interface) {
+			return std::abs(interface.current_yaw - interface.target_yaw) >= interface.param.delta_yaw;
+		};
+
+		auto if_err_xy = [](ControlInterface& interface){
+			return euclideanDistance(interface.current_pos, interface.target_pos) 
+				>= interface.param.delta_distance;
+		};
+
+		auto if_unhealthy = [](ControlInterface& interface){
+			return euclideanDistance(interface.current_pos, interface.target_pos) 
+				>= interface.param.brake_distance;
+		};
+
+		//action
+		auto action_stop = [](ControlInterface& interface){
+			interface.generate_cmd(1, 0,0,0);
+		};
+
+		auto action_free = [](ControlInterface& interface){
+			interface.generate_cmd(2, 0,0,0);
+		};
+
+		auto action_yaw = [](const auto& event, ControlInterface& interface){
+			const auto& e = static_cast<const timetick&>(event);
+			float wz = interface.pid_wz.update(
+				interface.target_yaw, 
+				interface.current_yaw, 
+				e.dt);
+			interface.generate_cmd(6, 0,0,wz);
+		};
+
+		auto action_xy = [](const auto& event, ControlInterface& interface){
+			const auto& e = static_cast<const timetick&>(event);
+			float vx = interface.pid_vx.update(
+				interface.target_pos.x(), 
+				interface.current_pos.x(), 
+				e.dt);
+			float vy = interface.pid_vy.update(
+				interface.target_pos.y(), 
+				interface.current_pos.y(), 
+				e.dt);
+
+			interface.generate_cmd(8, vx,vy,0);
+		};
+
+		auto action_log = [](ControlInterface& interface){
+			std::cout<<"\033[31m" << "action_log:" << "\033[0m" << std::endl;
+			std::cout<<"current position: "<< interface.current_pos.transpose() <<std::endl;
+			std::cout<<"target position: "<< interface.target_pos.transpose() <<std::endl;
+		};
+
+		//HSM
+		//sub sm
+		struct moving {
+			auto operator()() {
+				using namespace sml;
+				return make_transition_table(
+					"xy_control"_s(H) + event<timetick> [if_err_xy] / action_xy = "xy_control"_s,
+					"xy_control"_s + event<timetick> [(! if_err_xy) && if_err_yaw] 
+						= "yaw_control"_s,
+					"xy_control"_s + on_entry<_> / [](ControlInterface& interface)
+					{
+						interface.pid_vx.reset();
+						interface.pid_vy.reset();
+					},
+
+					"yaw_control"_s + event<timetick> [if_err_yaw] / action_yaw = "yaw_control"_s,
+					"yaw_control"_s + event<timetick> [if_err_xy] = "xy_control"_s,
+					"yaw_control"_s + on_entry<_> / [](ControlInterface& interface)
+					{
+						interface.pid_wz.reset();
+					}
+				);
+			}
+		};
+
+		//main sm
+		struct car_sm {
+			auto operator()() {
+				using namespace sml;
+				return make_transition_table(
+					*"terminate_handle"_s + event<timetick> [if_unhealthy] 
+						/ (action_log,action_stop) = X,
+					"terminate_handle"_s + event<terminate> / action_stop = X,
+
+
+					*"stop"_s + event<timetick> [(! if_get_current) || (! if_get_target)]
+						/ action_stop = "stop"_s,
+					"stop"_s + event<timetick> [if_stop_flag] / action_stop = "stop"_s,
+					"stop"_s + event<timetick> [
+							(! if_stop_flag) 
+							&& (! if_err_yaw)
+							&& (! if_err_xy)
+						] = "free"_s,
+					"stop"_s + event<timetick> [
+							(! if_stop_flag) 
+							&& (if_err_yaw || if_err_xy)
+						] = state<moving>,
+
+
+					state<moving> +  event<timetick> [if_stop_flag] = "stop"_s,
+					state<moving> +  event<timetick> [(!if_err_xy)&&(!if_err_yaw)] = "free"_s,
+
+
+					"free"_s + event<timetick> / action_free = "free"_s,
+					"free"_s + event<timetick> [if_stop_flag] = "stop"_s,
+					"free"_s + event<timetick> [if_err_xy || if_err_yaw] = state<moving>
+				);
+			}
+		};
+
+		//logger
+		struct my_logger {
+			template <class SM, class TEvent>
+			void log_process_event(const TEvent&) {
+			printf("[%s][process_event] %s\n", sml::aux::get_type_name<SM>(), sml::aux::get_type_name<TEvent>());
+			}
+		
+			template <class SM, class TGuard, class TEvent>
+			void log_guard(const TGuard&, const TEvent&, bool result) {
+			printf("[%s][guard] %s %s %s\n", sml::aux::get_type_name<SM>(), sml::aux::get_type_name<TGuard>(),
+				sml::aux::get_type_name<TEvent>(), (result ? "[OK]" : "[Reject]"));
+			}
+		
+			template <class SM, class TAction, class TEvent>
+			void log_action(const TAction&, const TEvent&) {
+			printf("[%s][action] %s %s\n", sml::aux::get_type_name<SM>(), sml::aux::get_type_name<TAction>(),
+				sml::aux::get_type_name<TEvent>());
+			}
+		
+			template <class SM, class TSrcState, class TDstState>
+			void log_state_change(const TSrcState& src, const TDstState& dst) {
+			printf("[%s][transition] %s -> %s\n", sml::aux::get_type_name<SM>(), src.c_str(), dst.c_str());
+			}
+		};
+	}
+
+
+	class SimpleCtrl final : public CarControllerBase{
+	public:
+		SimpleCtrl(const ctl_param_t& _param):
+			param{_param},
+			interface{param}
+		{
+			lastTime_ = Clock::now();
+
+		}
+
+		~SimpleCtrl() = default;
+
+		void feedTarget(const CarState& targetState) override {
+			static constexpr uint8_t MASK_ENABLE_CONTROL = 0b1000'0000;
+
+			if(targetState.mode & MASK_ENABLE_CONTROL){
+				interface.enable_control = 1;
+			} else {
+				interface.enable_control = 0;
+			}
+
+			interface.__flag_get_target = 1;
+			interface.target_pos = targetState.base_pos;
+			interface.target_pos.z() = 0.0;
+			interface.target_yaw = getYawDegrees(targetState.base_quat);
+		}
+
+		void feedCurrent(const CarState& currentState) override {
+			interface.__flag_get_current = 1;
+			interface.current_pos = currentState.base_pos;
+			interface.current_pos.z() = 0.0;
+			interface.current_yaw = getYawDegrees(currentState.base_quat);
+		}
+
+		CarState computeControlOnce(void) override {
+			Clock::time_point now = Clock::now();
+			std::chrono::duration<double> delta = now - lastTime_;
+			double dt = delta.count();
+			lastTime_ = now;
+
+			interface.last_dt = dt;
+			sm.process_event(HSM::timetick{dt});
+
+			return interface.compute_result;
+		};
+	private:
+		ctl_param_t param;
+		using Clock = std::chrono::steady_clock;
+		Clock::time_point lastTime_;
+		ControlInterface interface;
+		HSM::my_logger logger;
+		sml::sm<HSM::car_sm, sml::logger<HSM::my_logger>> sm{logger, interface};
+		
 	};
 
 };//namespace WHU_ROBOT

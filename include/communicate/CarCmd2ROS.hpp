@@ -91,7 +91,7 @@ namespace WHU_ROBOT{
 			return { pos, quat };
 		}
 
-		void maskParser(uint16_t& mask);
+		void maskParser(const uint16_t& mask);
 	};
 
 	void CarCmd2ROSHandler::exec(void){
@@ -154,7 +154,7 @@ namespace WHU_ROBOT{
 		target_odom_pub.publish(odom_msg);
 	}
 
-	inline void CarCmd2ROSHandler::maskParser(uint16_t& mask){
+	inline void CarCmd2ROSHandler::maskParser(const uint16_t& mask){
 		static constexpr uint16_t MASK_CAR_ENABLE = 0b0100'0000'0000'0000;//base control
 		static constexpr uint16_t MASK_SYNC_ENABLE = 0b0000'0000'1000'0000;//pose request
 		
