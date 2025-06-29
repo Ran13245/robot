@@ -30,19 +30,10 @@
 
 namespace WHU_ROBOT{
 
+	template <ChannelMode Mode = ChannelMode::UDP>
 	class CarCmd2ROSHandler{
 	public:
-		explicit CarCmd2ROSHandler(const param_t& _param, const ros::NodeHandle& _nh):
-			nh{_nh},
-			param{_param},
-			io_context{},
-			channel(io_context, param.car_cmd_local_ip, param.car_cmd_local_port, 
-				param.car_cmd_remote_ip, param.car_cmd_remote_port),
-			recv_mq(RingBuffer<whole_body_msg>{10})
-		{
-			std::cout<<"CarCmd2ROSHandler constructing"<<std::endl;
-			target_odom_pub = nh.advertise<nav_msgs::Odometry>(param.target_odom_topic, 10);
-		}
+		explicit CarCmd2ROSHandler(const param_t& _param, const ros::NodeHandle& _nh);
 
 		~CarCmd2ROSHandler(){}
 
@@ -57,7 +48,7 @@ namespace WHU_ROBOT{
 
 		asio::io_context io_context;
 		std::thread t;
-		CommChannel<ChannelMode::UDP, WholeBodyReceiver> channel;
+		CommChannel<Mode, WholeBodyReceiver> channel;
 		MsgQueue recv_mq;
 
 		asio::executor_work_guard<asio::io_context::executor_type> work_guard = 
@@ -85,7 +76,35 @@ namespace WHU_ROBOT{
 		}
 	};
 
-	void CarCmd2ROSHandler::exec(void){
+	template<>
+	inline CarCmd2ROSHandler<ChannelMode::UDP>::CarCmd2ROSHandler(const param_t& _param, 
+							const ros::NodeHandle& _nh):
+		nh{_nh},
+		param{_param},
+		io_context{},
+		channel(io_context, param.car_cmd_local_ip, param.car_cmd_local_port, 
+			param.car_cmd_remote_ip, param.car_cmd_remote_port),
+		recv_mq(RingBuffer<whole_body_msg>{10})
+	{
+		std::cout<<"CarCmd2ROSHandler constructing"<<std::endl;
+		target_odom_pub = nh.advertise<nav_msgs::Odometry>(param.target_odom_topic, 10);
+	}
+
+	template<>
+	inline CarCmd2ROSHandler<ChannelMode::Unix>::CarCmd2ROSHandler(const param_t& _param, 
+							const ros::NodeHandle& _nh):
+		nh{_nh},
+		param{_param},
+		io_context{},
+		channel(io_context, param.cmd_unix_channel, param.cmd_unix_channel),
+		recv_mq(RingBuffer<whole_body_msg>{10})
+	{
+		std::cout<<"CarCmd2ROSHandler constructing"<<std::endl;
+		target_odom_pub = nh.advertise<nav_msgs::Odometry>(param.target_odom_topic, 10);
+	}
+
+	template<ChannelMode Mode>
+	inline void CarCmd2ROSHandler<Mode>::exec(void){
 		whole_body_msg recv_data;
 		// std::cout << "DEBUG:---------------------"<<recv_mq.size()<<std::endl;
 		if(!recv_mq.empty()){
@@ -96,7 +115,8 @@ namespace WHU_ROBOT{
 		}
 	}
 
-	void CarCmd2ROSHandler::init(void){
+	template<ChannelMode Mode>
+	inline void CarCmd2ROSHandler<Mode>::init(void){
 
  		channel.bind_message_queue("whole_body_receiver", ParserType::Receiver, recv_mq);
 		
@@ -109,8 +129,8 @@ namespace WHU_ROBOT{
 		ROS_INFO("CarCmd2ROS start");
 	}
 
-
-	void CarCmd2ROSHandler::stop(void){
+	template<ChannelMode Mode>
+	inline void CarCmd2ROSHandler<Mode>::stop(void){
 		std::cout << "CarCmd2ROSHandler Stopping..." << std::endl;
 		io_context.stop();
 		// while(!t.joinable()) {std::cout<<"CarCmd2ROSHandler: waiting thread joinable"<<std::endl;}
@@ -119,7 +139,8 @@ namespace WHU_ROBOT{
 
 	}
 
-	inline void CarCmd2ROSHandler::cmdPublish(const Eigen::Vector3f& position,
+	template<ChannelMode Mode>
+	inline void CarCmd2ROSHandler<Mode>::cmdPublish(const Eigen::Vector3f& position,
 		const Eigen::Quaternionf& orientation)
 	{
 		nav_msgs::Odometry odom_msg;

@@ -34,6 +34,9 @@ public:
 	std::string target_odom_topic;
 	bool enable_cmd2ROS;
 
+	std::string odom_unix_channel;
+	std::string cmd_unix_channel;
+
 
 	param_t(const std::string& filename){
 		try {
@@ -61,6 +64,10 @@ public:
 			car_cmd_local_port = config["car_cmd_local_port"].as<int>();
 			target_odom_topic = config["target_odom_topic"].as<std::string>();
 			enable_cmd2ROS = config["enable_cmd2ROS"].as<bool>();
+
+			odom_unix_channel = config["odom_unix_channel"].as<std::string>();
+			cmd_unix_channel = config["cmd_unix_channel"].as<std::string>();
+
 		} catch (const YAML::Exception& e) {
 			throw std::runtime_error("Error parsing configuration file: " + std::string(e.what()));
 		}

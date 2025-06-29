@@ -13,10 +13,11 @@ enable_pcd_trans: true
 
 #odom
 odom_remote_ip: 0.0.0.0
-odom_remote_port: 5002
+odom_remote_port: 12345
 odom_local_ip: 0.0.0.0
-odom_local_port: 5003
+odom_local_port: 54321
 enable_odom_trans: false
+odom_unix_channel: /workspace/tmp/odom
 
 
 #cmd2ROS 
@@ -26,3 +27,4 @@ car_cmd_local_ip: 0.0.0.0
 car_cmd_local_port: 54321
 target_odom_topic: /robot/targetOdom
 enable_cmd2ROS: false
+cmd_unix_channel: /workspace/tmp/cmd

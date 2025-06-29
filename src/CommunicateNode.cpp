@@ -2,6 +2,7 @@
 #include "SLAMROSHandler.hpp"
 #include "configParser.hpp"
 #include "CarCmd2ROS.hpp"
+#include "comm_channel.hpp"
 
 int main(int argc, char** argv)
 {
@@ -18,7 +19,7 @@ int main(int argc, char** argv)
     slam_handler.init();
 
 
-    WHU_ROBOT::CarCmd2ROSHandler cmd_handler(params, nh);
+    WHU_ROBOT::CarCmd2ROSHandler<ChannelMode::Unix> cmd_handler(params, nh);
     cmd_handler.init();
 
     // ros::spin();

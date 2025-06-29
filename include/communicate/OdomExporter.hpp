@@ -22,7 +22,7 @@
 
 namespace WHU_ROBOT{
 
-
+template <ChannelMode Mode = ChannelMode::UDP>
 class OdomExporter {
 public:
 	explicit OdomExporter(const param_t& _param);
@@ -43,11 +43,12 @@ private:
 
 	asio::io_context io_context;
 	std::thread t;
-	CommChannel<ChannelMode::UDP, NavStateSender> channel;
+	CommChannel<Mode, NavStateSender> channel;
 	MsgQueue send_mq;
 };
 
-inline void OdomExporter::addOdom(const uint64_t& time, 
+template<ChannelMode Mode>
+inline void OdomExporter<Mode>::addOdom(const uint64_t& time, 
 	const Eigen::Vector3f& base_pos, const Eigen::Quaternionf& base_quat)
 {
 	static uint32_t __cnt = 0;
@@ -73,8 +74,8 @@ inline void OdomExporter::addOdom(const uint64_t& time,
 }
  
 
-
-inline OdomExporter::OdomExporter(const param_t& _param):
+template<>
+inline OdomExporter<ChannelMode::UDP>::OdomExporter(const param_t& _param):
 	param{_param},
 	io_context{},
 	channel(io_context, param.odom_local_ip, param.odom_local_port, 
@@ -85,7 +86,18 @@ inline OdomExporter::OdomExporter(const param_t& _param):
 }
 
 
-inline void OdomExporter::init(void){
+template<>
+inline OdomExporter<ChannelMode::Unix>::OdomExporter(const param_t& _param):
+	param{_param},
+	io_context{},
+	channel(io_context, param.odom_unix_channel, param.odom_unix_channel),
+	send_mq(RingBuffer<nav_state_msg>{10})
+{
+	std::cout<<"OdomExporter constructing"<<std::endl;
+}
+
+template<ChannelMode Mode>
+inline void OdomExporter<Mode>::init(void){
 	std::cout << "OdomExporter Starting..." << std::endl;
 	if(param.enable_odom_trans){
 		std::cout << "odom_trans enabled" << std::endl;
@@ -105,7 +117,8 @@ inline void OdomExporter::init(void){
 	std::cout << "OdomExporter Started" << std::endl;
 }
 
-inline void OdomExporter::stop(void){
+template<ChannelMode Mode>
+inline void OdomExporter<Mode>::stop(void){
 	if(param.enable_odom_trans){
 	std::cout << "OdomExporter Stopping..." << std::endl;
 	io_context.stop();

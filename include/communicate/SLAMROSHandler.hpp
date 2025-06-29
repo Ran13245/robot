@@ -20,6 +20,9 @@
 #include "PointCloudExporter.hpp"
 #include "OdomExporter.hpp"
 
+#include "comm_channel.hpp"
+
+
 #include <chrono>
 
 namespace WHU_ROBOT {
@@ -51,7 +54,7 @@ private:
 	ros::Subscriber odom_sub;
 
 	PointCloudExporter cloud_exporter;
-	OdomExporter odom_exporter;
+	OdomExporter<ChannelMode::Unix> odom_exporter;
 
 
 	void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg);
