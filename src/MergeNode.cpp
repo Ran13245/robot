@@ -1,0 +1,37 @@
+#include <ros/ros.h>
+#include "configParser.hpp"
+#include "MergeHandler.hpp"
+#include "comm_channel.hpp"
+
+int main(int argc, char** argv)
+{
+
+	try{
+		std::cout << "WHU Robot MergeHandler Node Starting..." << std::endl;
+
+		ros::init(argc, argv, "WHUrobot_MergeNode");
+		ros::NodeHandle nh;
+
+		std::string config_file = "/workspace/src/robot/config/config.yaml";
+		WHU_ROBOT::param_t params(config_file);
+
+		WHU_ROBOT::MergeHandler merge_handler(params);
+		merge_handler.init();
+
+		ros::Rate rate(100.0);
+
+		while(ros::ok()){
+			merge_handler.exec();
+			ros::spinOnce();
+			rate.sleep();
+		}
+
+		merge_handler.stop();
+	} catch (const std::exception& e) {
+		std::cout<<"Failed: "<< e.what()<<std::endl;
+		throw;
+	}
+	std::cout<<"CommunicateNode END" <<std::endl;
+	return 0;
+
+}

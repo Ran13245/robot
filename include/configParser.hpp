@@ -37,6 +37,10 @@ public:
 	std::string odom_unix_channel;
 	std::string cmd_unix_channel;
 
+	std::string merge_remote_ip;
+	int merge_remote_port;
+	std::string merge_local_ip;
+	int merge_local_port;
 
 	param_t(const std::string& filename){
 		try {
@@ -67,6 +71,12 @@ public:
 
 			odom_unix_channel = config["odom_unix_channel"].as<std::string>();
 			cmd_unix_channel = config["cmd_unix_channel"].as<std::string>();
+
+
+			merge_remote_ip = config["merge_remote_ip"].as<std::string>();
+			merge_remote_port = config["merge_remote_port"].as<int>();
+			merge_local_ip = config["merge_local_ip"].as<std::string>();
+			merge_local_port = config["merge_local_port"].as<int>();
 
 		} catch (const YAML::Exception& e) {
 			throw std::runtime_error("Error parsing configuration file: " + std::string(e.what()));

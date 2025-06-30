@@ -28,3 +28,9 @@ car_cmd_local_port: 54321
 target_odom_topic: /robot/targetOdom
 enable_cmd2ROS: false
 cmd_unix_channel: /workspace/tmp/cmd
+
+#merge
+merge_remote_ip: 192.168.1.105
+merge_remote_port: 12345
+merge_local_ip: 192.168.1.5
+merge_local_port: 54321
