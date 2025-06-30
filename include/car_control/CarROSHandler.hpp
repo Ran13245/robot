@@ -3,6 +3,7 @@
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <yhs_can_msgs/ctrl_cmd.h>
+#include <std_msgs/Bool.h>
 
 #include "CarControlBase.hpp"
 #include "configParser.hpp"
@@ -22,6 +23,8 @@ namespace WHU_ROBOT{
 			target_odom_sub = nh.subscribe<nav_msgs::Odometry>(param.target_odom_topic, 10, 
 				&CarROSHandler::targetOdomCallback, this);
 			ctrl_pub = nh.advertise<yhs_can_msgs::ctrl_cmd>(param.ctrl_topic, 10);
+			state_msg_control_enable_sub = nh.subscribe<std_msgs::Bool>(param.state_msg_car_control_enable,
+				 10, &CarROSHandler::stateControlEnableCallback, this);
 		}
 
 		~CarROSHandler(){}
@@ -34,12 +37,27 @@ namespace WHU_ROBOT{
 		ros::Subscriber target_odom_sub;
 		ros::Publisher ctrl_pub;
 
+		ros::Subscriber state_msg_control_enable_sub;
+
+		bool if_enable_control = 0;
+
 		std::unique_ptr<CarControllerBase> controller_ptr;
 
 		void odomCallback(const nav_msgs::OdometryConstPtr& msg);
 		void targetOdomCallback(const nav_msgs::OdometryConstPtr& msg);
 		void ctrlPublish(const CarState& cmd);
+
+		void stateControlEnableCallback(const std_msgs::Bool::ConstPtr& msg);
 	};
+
+
+	inline void CarROSHandler::stateControlEnableCallback(const std_msgs::Bool::ConstPtr& msg){
+		if(msg->data){
+			if_enable_control = 1;
+		} else {
+			if_enable_control = 0;
+		}
+	}
 
 
 	inline void CarROSHandler::exec(void){
@@ -112,6 +130,9 @@ namespace WHU_ROBOT{
 
 	inline void CarROSHandler::targetOdomCallback(const nav_msgs::OdometryConstPtr& msg){
 
+		static constexpr uint8_t MASK_ENABLE_CNT = 0b0000'0010;
+		static constexpr uint8_t MASK_ENABLE_CONTROL = 0b1000'0000;
+
 		static uint32_t __cnt = 0;
 
 			// 1. 从 ROS 消息头提取时间戳（单位：秒 + 纳秒），转换为 uint64_t 纳秒
@@ -137,7 +158,12 @@ namespace WHU_ROBOT{
 
 		CarState _odomState;
 
-		_odomState.mode = 2;
+		_odomState.mode = MASK_ENABLE_CNT;
+
+		if(if_enable_control){
+			_odomState.mode |= MASK_ENABLE_CONTROL;
+		}
+
 		_odomState.cnt = __cnt++;
 		_odomState.time = time_ns;
 		_odomState.base_pos = _base_pos;

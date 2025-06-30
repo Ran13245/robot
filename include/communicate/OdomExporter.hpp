@@ -32,6 +32,8 @@ public:
 
 	void addOdom(const uint64_t& time, const Eigen::Vector3f& base_pos, const Eigen::Quaternionf& base_quat);
 
+	void pushSyncSignal(void);
+
 private:
 
 	/*-----------------------------consts-----------------------------------------*/
@@ -45,17 +47,38 @@ private:
 	std::thread t;
 	CommChannel<Mode, NavStateSender> channel;
 	MsgQueue send_mq;
+
+	size_t sync_cnt = 0;
+
+	size_t popSyncSignal(void);
 };
+
+template<ChannelMode Mode>
+inline 	void OdomExporter<Mode>::pushSyncSignal(void){
+	sync_cnt++;
+	std::cout<<"OdomExporter: get sync request"<<std::endl;
+}
+
+template<ChannelMode Mode>
+inline size_t OdomExporter<Mode>::popSyncSignal(void){
+	return sync_cnt>0 ? sync_cnt-- : 0;
+}
 
 template<ChannelMode Mode>
 inline void OdomExporter<Mode>::addOdom(const uint64_t& time, 
 	const Eigen::Vector3f& base_pos, const Eigen::Quaternionf& base_quat)
 {
+	static constexpr uint16_t MASK_ODOM_SYNC_ANSWER = 0b0000'0000'0100'0000;
+
 	static uint32_t __cnt = 0;
 
 	nav_state_msg data{};
 
-	data.mask = 0;
+	if(popSyncSignal()){
+		data.mask = MASK_ODOM_SYNC_ANSWER;
+	} else {
+		data.mask = 0;
+	}
 	data.cnt = __cnt++;
 	data.time = time;
 

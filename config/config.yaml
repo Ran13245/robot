@@ -34,3 +34,8 @@ merge_remote_ip: 192.168.1.105
 merge_remote_port: 12345
 merge_local_ip: 192.168.1.5
 merge_local_port: 54321
+
+
+# state msg
+state_msg_sync_enable: /state/sync_enable
+state_msg_car_control_enable: /state/car_control_enable

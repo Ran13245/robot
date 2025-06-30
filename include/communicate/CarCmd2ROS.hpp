@@ -18,6 +18,7 @@
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <tf/transform_datatypes.h>
+#include <std_msgs/Bool.h>
 
 #include "configParser.hpp"
 
@@ -33,7 +34,19 @@ namespace WHU_ROBOT{
 	template <ChannelMode Mode = ChannelMode::UDP>
 	class CarCmd2ROSHandler{
 	public:
-		explicit CarCmd2ROSHandler(const param_t& _param, const ros::NodeHandle& _nh);
+		explicit CarCmd2ROSHandler(const param_t& _param, const ros::NodeHandle& _nh):
+			nh{_nh},
+			param{_param},
+			io_context{},
+			channel(io_context, param.car_cmd_local_ip, param.car_cmd_local_port, 
+				param.car_cmd_remote_ip, param.car_cmd_remote_port),
+			recv_mq(RingBuffer<whole_body_msg>{10})
+		{
+			std::cout<<"CarCmd2ROSHandler constructing"<<std::endl;
+			target_odom_pub = nh.advertise<nav_msgs::Odometry>(param.target_odom_topic, 10);
+			state_sync_pub = nh.advertise<std_msgs::Bool>(param.state_msg_sync_enable, 10);
+			state_car_enable_pub = nh.advertise<std_msgs::Bool>(param.state_msg_car_control_enable, 10);
+		}
 
 		~CarCmd2ROSHandler(){}
 
@@ -45,6 +58,8 @@ namespace WHU_ROBOT{
 		ros::NodeHandle nh;
 		param_t param;
 		ros::Publisher target_odom_pub;
+		ros::Publisher state_sync_pub;
+		ros::Publisher state_car_enable_pub;
 
 		asio::io_context io_context;
 		std::thread t;
@@ -72,8 +87,12 @@ namespace WHU_ROBOT{
 				packet.base_quat[3]   // z
 			);
 
+			maskParser(packet.mask);
+
 			return { pos, quat };
 		}
+		
+		void maskParser(const uint16_t& mask);
 	};
 
 	template<>
@@ -165,6 +184,44 @@ namespace WHU_ROBOT{
 
 		target_odom_pub.publish(odom_msg);
 	}
+
+	template<ChannelMode Mode>
+	inline void CarCmd2ROSHandler<Mode>::maskParser(const uint16_t& mask){
+		static constexpr uint16_t MASK_CAR_ENABLE = 0b0100'0000'0000'0000;//base control
+		static constexpr uint16_t MASK_SYNC_ENABLE = 0b0000'0000'1000'0000;//pose request
+		
+		//--debug
+		std::cout << "mask = 0x"
+		<< std::hex << std::uppercase << std::setw(4) << std::setfill('0')
+		<< mask
+		<< std::dec    // 恢复为十进制输出格式
+		<< std::endl;
+		//--debug
+
+		std_msgs::Bool msg_sync;
+		std_msgs::Bool msg_car_enable;
+
+		if (mask & MASK_CAR_ENABLE) {
+			msg_car_enable.data = true;
+			state_car_enable_pub.publish(msg_car_enable);
+		} else {
+			msg_car_enable.data = false;
+			state_car_enable_pub.publish(msg_car_enable);
+		}
+
+		if (mask & MASK_SYNC_ENABLE) {
+			msg_sync.data = true;
+			state_sync_pub.publish(msg_sync);
+		} else {
+			msg_sync.data = false;
+			state_sync_pub.publish(msg_sync);
+		}
+
+		if((mask & MASK_SYNC_ENABLE) && (mask & MASK_CAR_ENABLE)){
+			std::cout<<"Warning: MASK_CAR_ENABLE should be disabled when set MASK_SYNC_ENABLE"<<std::endl;
+		}
+	}
+
 
 };//namespace WHU_ROBOT
 

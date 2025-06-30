@@ -18,3 +18,5 @@ d_wz: 0.1
 
 max_v: 1.0
 max_w: 30.0
+
+state_msg_car_control_enable: /state/car_control_enable
