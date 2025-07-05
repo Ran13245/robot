@@ -19,7 +19,7 @@ int main(int argc, char** argv)
     slam_handler.init();
 
 
-    WHU_ROBOT::CarCmd2ROSHandler<ChannelMode::Unix> cmd_handler(params, nh);
+    WHU_ROBOT::CarCmd2ROSHandler<ChannelMode::UDP> cmd_handler(params, nh);
     cmd_handler.init();
 
     // ros::spin();

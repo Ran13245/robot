@@ -57,7 +57,7 @@ private:
 	ros::Subscriber odom_sub;
 
 	PointCloudExporter cloud_exporter;
-	OdomExporter<ChannelMode::Unix> odom_exporter;
+	OdomExporter<ChannelMode::UDP> odom_exporter;
 
 	ros::Subscriber state_msg_sync_sub;
 

@@ -115,7 +115,7 @@ namespace WHU_ROBOT{
 		nh{_nh},
 		param{_param},
 		io_context{},
-		channel(io_context, param.cmd_unix_channel, param.cmd_unix_channel),
+		channel(io_context, param.cmd_unix_channel, "/tmp/cmd_unix_channel_remote"),
 		recv_mq(RingBuffer<whole_body_msg>{10})
 	{
 		std::cout<<"CarCmd2ROSHandler constructing"<<std::endl;
@@ -128,7 +128,7 @@ namespace WHU_ROBOT{
 		// std::cout << "DEBUG:---------------------"<<recv_mq.size()<<std::endl;
 		if(!recv_mq.empty()){
 			recv_mq.dequeue(recv_data);
-			ROS_INFO("get command data");
+			ROS_INFO("-----------------------------get command data----------------------------------");
 			auto [_position, _orientation] = decodePacket(recv_data);
 			cmdPublish(_position, _orientation);
 		}

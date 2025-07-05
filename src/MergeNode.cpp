@@ -15,14 +15,14 @@ int main(int argc, char** argv)
 		std::string config_file = "/workspace/src/robot/config/config.yaml";
 		WHU_ROBOT::param_t params(config_file);
 
-		WHU_ROBOT::MergeHandler merge_handler(params);
+		WHU_ROBOT::MergeHandler<ChannelMode::UDP> merge_handler(params);
 		merge_handler.init();
 
 		ros::Rate rate(100.0);
 
 		while(ros::ok()){
-			merge_handler.exec();
 			ros::spinOnce();
+			merge_handler.exec();
 			rate.sleep();
 		}
 

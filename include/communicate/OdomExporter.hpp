@@ -113,7 +113,7 @@ template<>
 inline OdomExporter<ChannelMode::Unix>::OdomExporter(const param_t& _param):
 	param{_param},
 	io_context{},
-	channel(io_context, param.odom_unix_channel, param.odom_unix_channel),
+	channel(io_context, "/tmp/odom_unix_channel_local", param.odom_unix_channel),
 	send_mq(RingBuffer<nav_state_msg>{10})
 {
 	std::cout<<"OdomExporter constructing"<<std::endl;
@@ -127,7 +127,7 @@ inline void OdomExporter<Mode>::init(void){
 
  		channel.bind_message_queue("nav_state_sender", ParserType::Sender, send_mq);
 		
-  		while(!channel.enable_receiver()){std::cout<<
+  		while(!channel.enable_sender()){std::cout<<
 			"OdomExporter: waiting enable_sender"<<std::endl;}
 		
 		std::cout << "odom transmit Starting..." << std::endl;

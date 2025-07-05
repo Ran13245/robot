@@ -1,10 +1,9 @@
 #pragma once
 
-#include <ros/ros.h>
 #include <Eigen/Eigen>
 #include <span>
 
-
+#include <iostream>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
@@ -26,6 +25,7 @@
 
 namespace WHU_ROBOT {
 
+	template <ChannelMode Mode = ChannelMode::UDP>
 	class MergeHandler {
 		public:
 			explicit MergeHandler(const param_t& _param);
@@ -42,8 +42,8 @@ namespace WHU_ROBOT {
 			asio::io_context io_context;
 			std::thread t;
 			CommChannel<ChannelMode::UDP, NavStateSender, WholeBodyReceiver> remote_channel;
-			CommChannel<ChannelMode::Unix, NavStateReceiver> local_channel_odom_rcv;
-			CommChannel<ChannelMode::Unix, WholeBodySender> local_channel_carcmd_snd;
+			CommChannel<Mode, NavStateReceiver> local_channel_odom_rcv;
+			CommChannel<Mode, WholeBodySender> local_channel_carcmd_snd;
 
 			MsgQueue recv_mq_remote;
 			MsgQueue send_mq_remote;
@@ -53,13 +53,14 @@ namespace WHU_ROBOT {
 			nav_state_msg stateMerge(nav_state_msg& msg_from_odom){return msg_from_odom;}
 	};
 
-	inline MergeHandler::MergeHandler(const param_t& _param):
+	template<>
+	inline MergeHandler<ChannelMode::Unix>::MergeHandler(const param_t& _param):
 		param{_param},
 		io_context{},
 		remote_channel(io_context, param.merge_local_ip, param.merge_local_port, 
 			param.merge_remote_ip, param.merge_remote_port),
-		local_channel_odom_rcv(io_context, param.odom_unix_channel, param.odom_unix_channel),
-		local_channel_carcmd_snd(io_context, param.cmd_unix_channel, param.cmd_unix_channel),
+		local_channel_odom_rcv(io_context, param.odom_unix_channel, "/tmp/odom_unix_channel_remote"),
+		local_channel_carcmd_snd(io_context, "/tmp/cmd_unix_channel_local", param.cmd_unix_channel),
 		recv_mq_remote(RingBuffer<whole_body_msg>{10}),
 		send_mq_remote(RingBuffer<nav_state_msg>{10}),
 		recv_mq_local_odom(RingBuffer<nav_state_msg>{10}),
@@ -68,7 +69,26 @@ namespace WHU_ROBOT {
 		std::cout<<"MergeHandler constructing"<<std::endl;
 	}
 
-	inline void MergeHandler::init(void){
+	template<>
+	inline MergeHandler<ChannelMode::UDP>::MergeHandler(const param_t& _param):
+		param{_param},
+		io_context{},
+		remote_channel(io_context, param.merge_local_ip, param.merge_local_port, 
+			param.merge_remote_ip, param.merge_remote_port),
+		local_channel_odom_rcv(io_context, param.odom_remote_ip, param.odom_remote_port, 
+			param.odom_local_ip, param.odom_local_port),
+		local_channel_carcmd_snd(io_context, param.car_cmd_remote_ip, param.car_cmd_remote_port, 
+			param.car_cmd_local_ip, param.car_cmd_local_port),
+		recv_mq_remote(RingBuffer<whole_body_msg>{10}),
+		send_mq_remote(RingBuffer<nav_state_msg>{10}),
+		recv_mq_local_odom(RingBuffer<nav_state_msg>{10}),
+		send_mq_local_carcmd(RingBuffer<whole_body_msg>{10})
+	{
+		std::cout<<"MergeHandler constructing"<<std::endl;
+	}
+
+	template<ChannelMode Mode>
+	inline void MergeHandler<Mode>::init(void){
 		std::cout << "MergeHandler Starting..." << std::endl;
 
 		remote_channel.bind_message_queue("nav_state_sender", ParserType::Sender, send_mq_remote);
@@ -78,17 +98,18 @@ namespace WHU_ROBOT {
 		local_channel_carcmd_snd.bind_message_queue("whole_body_sender", ParserType::Sender, 
 				send_mq_local_carcmd);
 
-		remote_channel.enable_receiver();
-		remote_channel.enable_sender();
-		local_channel_odom_rcv.enable_receiver();
-		local_channel_carcmd_snd.enable_sender();
+		while(!remote_channel.enable_receiver()){std::cout<<"1"<<std::endl;}
+		while(!remote_channel.enable_sender()){std::cout<<"2"<<std::endl;}
+		while(!local_channel_odom_rcv.enable_receiver()){std::cout<<"3"<<std::endl;}
+		while(!local_channel_carcmd_snd.enable_sender()){std::cout<<"4"<<std::endl;}
 
 		t = std::thread([this]() { io_context.run(); });
 		
 		std::cout << "MergeHandler Start" << std::endl;
 	}
 
-	inline void MergeHandler::stop(void){
+	template<ChannelMode Mode>
+	inline void MergeHandler<Mode>::stop(void){
 		std::cout << "MergeHandler Stopping..." << std::endl;
 
 		io_context.stop();
@@ -97,41 +118,43 @@ namespace WHU_ROBOT {
 		std::cout << "MergeHandler Stopped" << std::endl;
 	}
 
-	inline void MergeHandler::exec(void){
+	template<ChannelMode Mode>
+	inline void MergeHandler<Mode>::exec(void){
 		// std::cout << "DEBUG:---------------------"<<recv_mq.size()<<std::endl;
 
-		static nav_state_msg recv_odom;
+		 nav_state_msg recv_odom;
 		// static nav_state_msg recv_arm;
-		static whole_body_msg recv_remote_data;
-		static nav_state_msg merged_msg;
+		 whole_body_msg recv_remote_data;
+		 nav_state_msg merged_msg;
 
-		static bool get_local_odom = 0;
-		static bool get_local_arm = 0;
-
+		// static bool get_local_odom = 0;
+		// static bool get_local_arm = 0;
+		
+		std::cout<<"---------"<<std::endl;
 		if(!recv_mq_local_odom.empty()){
-			recv_mq_local_odom.dequeue(recv_odom);
-			std::cout<<"get odom data"<<std::endl;
+			if(recv_mq_local_odom.dequeue(recv_odom))
+			{std::cout<<"get odom data"<<std::endl;}
+		 	else {std::cout<<"---!!!!!!!"<<std::endl;}
+			// get_local_odom = 1;
+		}else {std::cout<<"{{{}}}"<<std::endl;}
 
-			get_local_odom = 1;
-		}
+		// // if(!recv_mq_local_arm.empty()){ //TODO
+		// 	get_local_arm = 1;
+		// // }
 
-		// if(!recv_mq_local_arm.empty()){ //TODO
-			get_local_arm = 1;
+		// if(get_local_odom && get_local_arm){
+		// 	merged_msg = stateMerge(recv_odom);
+		// 	send_mq_remote.enqueue(merged_msg);
 		// }
 
-		if(get_local_odom && get_local_arm){
-			merged_msg = stateMerge(recv_odom);
-			send_mq_remote.enqueue(merged_msg);
-		}
-
-		if(!recv_mq_remote.empty()){
+		// if(!recv_mq_remote.empty()){
 			
-			recv_mq_remote.dequeue(recv_remote_data);
-			std::cout<<"get command data"<<std::endl;
+		// 	recv_mq_remote.dequeue(recv_remote_data);
+		// 	std::cout<<"get command data"<<std::endl;
 			
-			send_mq_local_carcmd.enqueue(recv_remote_data);
-			// local_channel_arm_snd.enqueue(recv_remote_data);
-		}
+		// 	send_mq_local_carcmd.enqueue(recv_remote_data);
+		// 	// local_channel_arm_snd.enqueue(recv_remote_data);
+		// }
 
 	}
 

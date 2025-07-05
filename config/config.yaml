@@ -12,21 +12,21 @@ enable_pcd_trans: true
 
 
 #odom
-odom_remote_ip: 0.0.0.0
-odom_remote_port: 12345
-odom_local_ip: 0.0.0.0
-odom_local_port: 54321
-enable_odom_trans: false
+odom_remote_ip: 127.0.0.1
+odom_remote_port: 50002
+odom_local_ip: 127.0.0.1
+odom_local_port: 50003
+enable_odom_trans: true
 odom_unix_channel: /workspace/tmp/odom
 
 
 #cmd2ROS 
-car_cmd_remote_ip: 0.0.0.0
-car_cmd_remote_port: 12345
-car_cmd_local_ip: 0.0.0.0
-car_cmd_local_port: 54321
+car_cmd_remote_ip: 127.0.0.1
+car_cmd_remote_port: 50004
+car_cmd_local_ip: 127.0.0.1
+car_cmd_local_port: 50005
 target_odom_topic: /robot/targetOdom
-enable_cmd2ROS: false
+enable_cmd2ROS: true
 cmd_unix_channel: /workspace/tmp/cmd
 
 #merge
