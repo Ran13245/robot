@@ -127,34 +127,34 @@ namespace WHU_ROBOT {
 		 whole_body_msg recv_remote_data;
 		 nav_state_msg merged_msg;
 
-		// static bool get_local_odom = 0;
-		// static bool get_local_arm = 0;
+		static bool get_local_odom = 0;
+		static bool get_local_arm = 0;
 		
-		std::cout<<"---------"<<std::endl;
 		if(!recv_mq_local_odom.empty()){
 			if(recv_mq_local_odom.dequeue(recv_odom))
-			{std::cout<<"get odom data"<<std::endl;}
-		 	else {std::cout<<"---!!!!!!!"<<std::endl;}
-			// get_local_odom = 1;
-		}else {std::cout<<"{{{}}}"<<std::endl;}
+			{
+				std::cout<<"get odom data"<<std::endl;
+				get_local_odom = 1;
+			} else {std::cout<<"wrong odom data"<<std::endl;}
+		}
 
 		// // if(!recv_mq_local_arm.empty()){ //TODO
-		// 	get_local_arm = 1;
+			get_local_arm = 1;
 		// // }
 
-		// if(get_local_odom && get_local_arm){
-		// 	merged_msg = stateMerge(recv_odom);
-		// 	send_mq_remote.enqueue(merged_msg);
-		// }
+		if(get_local_odom && get_local_arm){
+			merged_msg = stateMerge(recv_odom);
+			send_mq_remote.enqueue(merged_msg);
+		}
 
-		// if(!recv_mq_remote.empty()){
+		if(!recv_mq_remote.empty()){
 			
-		// 	recv_mq_remote.dequeue(recv_remote_data);
-		// 	std::cout<<"get command data"<<std::endl;
+			recv_mq_remote.dequeue(recv_remote_data);
+			std::cout<<"get command data"<<std::endl;
 			
-		// 	send_mq_local_carcmd.enqueue(recv_remote_data);
-		// 	// local_channel_arm_snd.enqueue(recv_remote_data);
-		// }
+			send_mq_local_carcmd.enqueue(recv_remote_data);
+			// local_channel_arm_snd.enqueue(recv_remote_data);
+		}
 
 	}
 

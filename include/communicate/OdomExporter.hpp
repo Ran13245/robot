@@ -56,7 +56,7 @@ private:
 template<ChannelMode Mode>
 inline 	void OdomExporter<Mode>::pushSyncSignal(void){
 	sync_cnt++;
-	std::cout<<"OdomExporter: get sync request"<<std::endl;
+	std::cout<<"\033[32mOdomExporter: get sync request\033[0m"<<std::endl;
 }
 
 template<ChannelMode Mode>

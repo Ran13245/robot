@@ -6,7 +6,7 @@
 int main(int argc, char** argv)
 {
 
-	try{
+
 		std::cout << "WHU Robot MergeHandler Node Starting..." << std::endl;
 
 		ros::init(argc, argv, "WHUrobot_MergeNode");
@@ -15,7 +15,7 @@ int main(int argc, char** argv)
 		std::string config_file = "/workspace/src/robot/config/config.yaml";
 		WHU_ROBOT::param_t params(config_file);
 
-		WHU_ROBOT::MergeHandler<ChannelMode::UDP> merge_handler(params);
+		WHU_ROBOT::MergeHandler<ChannelMode::Unix> merge_handler(params);
 		merge_handler.init();
 
 		ros::Rate rate(100.0);
@@ -27,10 +27,7 @@ int main(int argc, char** argv)
 		}
 
 		merge_handler.stop();
-	} catch (const std::exception& e) {
-		std::cout<<"Failed: "<< e.what()<<std::endl;
-		throw;
-	}
+
 	std::cout<<"CommunicateNode END" <<std::endl;
 	return 0;
 
