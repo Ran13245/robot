@@ -34,19 +34,7 @@ namespace WHU_ROBOT{
 	template <ChannelMode Mode = ChannelMode::UDP>
 	class CarCmd2ROSHandler{
 	public:
-		explicit CarCmd2ROSHandler(const param_t& _param, const ros::NodeHandle& _nh):
-			nh{_nh},
-			param{_param},
-			io_context{},
-			channel(io_context, param.car_cmd_local_ip, param.car_cmd_local_port, 
-				param.car_cmd_remote_ip, param.car_cmd_remote_port),
-			recv_mq(RingBuffer<whole_body_msg>{10})
-		{
-			std::cout<<"CarCmd2ROSHandler constructing"<<std::endl;
-			target_odom_pub = nh.advertise<nav_msgs::Odometry>(param.target_odom_topic, 10);
-			state_sync_pub = nh.advertise<std_msgs::Bool>(param.state_msg_sync_enable, 10);
-			state_car_enable_pub = nh.advertise<std_msgs::Bool>(param.state_msg_car_control_enable, 10);
-		}
+		explicit CarCmd2ROSHandler(const param_t& _param, const ros::NodeHandle& _nh);
 
 		~CarCmd2ROSHandler(){}
 
@@ -105,8 +93,10 @@ namespace WHU_ROBOT{
 			param.car_cmd_remote_ip, param.car_cmd_remote_port),
 		recv_mq(RingBuffer<whole_body_msg>{10})
 	{
-		std::cout<<"CarCmd2ROSHandler constructing"<<std::endl;
+		std::cout<<"CarCmd2ROSHandler constructing UDP"<<std::endl;
 		target_odom_pub = nh.advertise<nav_msgs::Odometry>(param.target_odom_topic, 10);
+		state_sync_pub = nh.advertise<std_msgs::Bool>(param.state_msg_sync_enable, 10);
+		state_car_enable_pub = nh.advertise<std_msgs::Bool>(param.state_msg_car_control_enable, 10);
 	}
 
 	template<>
@@ -118,8 +108,10 @@ namespace WHU_ROBOT{
 		channel(io_context, param.cmd_unix_channel, "/tmp/cmd_unix_channel_remote"),
 		recv_mq(RingBuffer<whole_body_msg>{10})
 	{
-		std::cout<<"CarCmd2ROSHandler constructing"<<std::endl;
+		std::cout<<"CarCmd2ROSHandler constructing Unix"<<std::endl;
 		target_odom_pub = nh.advertise<nav_msgs::Odometry>(param.target_odom_topic, 10);
+		state_sync_pub = nh.advertise<std_msgs::Bool>(param.state_msg_sync_enable, 10);
+		state_car_enable_pub = nh.advertise<std_msgs::Bool>(param.state_msg_car_control_enable, 10);
 	}
 
 	template<ChannelMode Mode>
