@@ -87,6 +87,43 @@ public:
         return output;
     }
 
+    double update(double error, double dt) {
+        if (dt <= 0.0) {
+            // 如果 dt 非法，则直接返回 0
+            return 0.0;
+        }
+
+        // 比例项
+        double Pout = Kp * error;
+
+        // 积分项累加并限幅
+        integrator += error * dt;
+        integrator = std::clamp(integrator, integMin, integMax);
+        double Iout = Ki * integrator;
+
+        // 微分项（基于误差变化率）
+        double derivative = 0.0;
+        if (firstUpdate) {
+            // 第一次更新时无法计算微分，可设置为 0
+            derivative = 0.0;
+            firstUpdate = false;
+        } else {
+            derivative = (error - prevError) / dt;
+        }
+        double Dout = Kd * derivative;
+
+        // 记录本次误差，供下次计算微分项使用
+        prevError = error;
+
+        // 合成三项，得到未经限幅的控制量
+        double output = Pout + Iout + Dout;
+
+        // 输出限幅
+        output = std::clamp(output, outMin, outMax);
+
+        return output;
+    }
+
     /**
      * @brief 重置 PID 状态（一般在启动或重新设定目标前调用）
      */

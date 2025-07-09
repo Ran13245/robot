@@ -33,11 +33,11 @@ namespace WHU_ROBOT{
 		PID pid_wz;
 
 		//-----------------------state-------------
-		Eigen::Vector3f current_pos;
-		float current_yaw;
+		Eigen::Vector3f current_pos;//in Body, always (0,0,0)
+		// float current_yaw;
 		CarState current_state;
-		Eigen::Vector3f target_pos;
-		float target_yaw;
+		Eigen::Vector3f target_pos;//in Body
+		// float target_yaw;
 		CarState target_state;
 
 		CarState compute_result;
@@ -116,8 +116,9 @@ namespace WHU_ROBOT{
 
 		struct IfErrYawGuard {
 			bool operator()(WHU_ROBOT::ControlInterface& interface) const noexcept {
-				return std::abs(interface.current_yaw - interface.target_yaw) 
-					>= interface.param.delta_yaw;
+				return std::abs(
+					getYawError(interface.current_state.base_quat, interface.target_state.base_quat)) 
+						>= interface.param.delta_yaw;
 			}
 		};
 		auto if_err_yaw = IfErrYawGuard{};
@@ -158,8 +159,7 @@ namespace WHU_ROBOT{
 			void operator()(const auto& event, WHU_ROBOT::ControlInterface& interface) noexcept {
 				const auto& e = static_cast<const timetick&>(event);
 				float wz = interface.pid_wz.update(
-					interface.target_yaw, 
-					interface.current_yaw, 
+					getYawError(interface.current_state.base_quat, interface.target_state.base_quat),
 					e.dt);
 				interface.generate_cmd(6, 0,0,wz);
 			}
@@ -340,7 +340,7 @@ namespace WHU_ROBOT{
 							interface.current_state.base_quat, targetState.base_pos);
 				targetState.base_pos;
 				interface.target_pos.z() = 0.0;
-				interface.target_yaw = getYawDegrees(targetState.base_quat);
+				// interface.target_yaw = getYawDegrees(targetState.base_quat);
 			}
 		}
 
@@ -350,7 +350,7 @@ namespace WHU_ROBOT{
 			// interface.current_pos = currentState.base_pos;
 			interface.current_pos = Eigen::Vector3f(0,0,0);
 			// interface.current_pos.z() = 0.0;
-			interface.current_yaw = getYawDegrees(currentState.base_quat);
+			// interface.current_yaw = getYawDegrees(currentState.base_quat);
 		}
 
 		CarState computeControlOnce(void) override {

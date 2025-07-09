@@ -91,6 +91,19 @@ namespace WHU_ROBOT{
 		return yawRad * RAD2DEG;
 	}
 
+	inline float getYawError(const Eigen::Quaternionf& q_curr, const Eigen::Quaternionf& q_target) {
+		float yaw_curr = getYawDegrees(q_curr);
+		float yaw_target = getYawDegrees(q_target);
+	    
+		float error = yaw_target - yaw_curr;
+	    
+		// 将误差限制在 [-π, π]
+		while (error > 180.0f) error -= 360.0f;
+		while (error < -180.0f) error += 360.0f;
+	    
+		return error;
+	    }
+
 	/**
 	* @brief 计算两个三维点之间的欧氏距离
 	*
