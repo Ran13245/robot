@@ -67,7 +67,7 @@ add_executable(WHUrobot_carcontrol_node src/CarControlNode.cpp)
 
 add_executable(WHUrobot_merge_node src/MergeNode.cpp)
 
-
+add_executable(WHUrobot_filter_node src/simpleFilterNode.cpp)
 
 
 target_link_libraries(WHUrobot_communicate_node
@@ -80,5 +80,10 @@ target_link_libraries(WHUrobot_carcontrol_node
 
 
 target_link_libraries(WHUrobot_merge_node
+  ${catkin_LIBRARIES} Eigen3::Eigen ${YAML_CPP_LIBRARIES} TBB::tbb
+)
+
+
+target_link_libraries(WHUrobot_filter_node
   ${catkin_LIBRARIES} Eigen3::Eigen ${YAML_CPP_LIBRARIES} TBB::tbb
 )

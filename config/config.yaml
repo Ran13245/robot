@@ -1,6 +1,6 @@
 #cloud
 cloud_topic: /cloud_registered
-odom_topic: /Odometry
+odom_topic: /filtered_odometry
 cloud_export_path: /workspace/export_cloud.bin
 remote_ip: 192.168.1.105
 remote_port: 5000

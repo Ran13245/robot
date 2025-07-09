@@ -1,5 +1,5 @@
 #ROS
-odom_topic: /Odometry
+odom_topic: /filtered_odometry
 target_odom_topic: /robot/targetOdom
 ctrl_topic: /ctrl_cmd
 
