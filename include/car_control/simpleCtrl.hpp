@@ -35,8 +35,10 @@ namespace WHU_ROBOT{
 		//-----------------------state-------------
 		Eigen::Vector3f current_pos;
 		float current_yaw;
+		CarState current_state;
 		Eigen::Vector3f target_pos;
 		float target_yaw;
+		CarState target_state;
 
 		CarState compute_result;
 
@@ -322,22 +324,32 @@ namespace WHU_ROBOT{
 		void feedTarget(const CarState& targetState) override {
 			static constexpr uint8_t MASK_ENABLE_CONTROL = 0b1000'0000;
 
+			interface.target_state = targetState;
+
 			if(targetState.mode & MASK_ENABLE_CONTROL){
 				interface.enable_control = 1;
 			} else {
 				interface.enable_control = 0;
 			}
 
-			interface.__flag_get_target = 1;
-			interface.target_pos = targetState.base_pos;
-			interface.target_pos.z() = 0.0;
-			interface.target_yaw = getYawDegrees(targetState.base_quat);
+			if(!interface.__flag_get_current){
+				return;
+			}else {
+				interface.__flag_get_target = 1;
+				interface.target_pos = transformWorldToBody(interface.current_state.base_pos, 
+							interface.current_state.base_quat, targetState.base_pos);
+				targetState.base_pos;
+				interface.target_pos.z() = 0.0;
+				interface.target_yaw = getYawDegrees(targetState.base_quat);
+			}
 		}
 
 		void feedCurrent(const CarState& currentState) override {
 			interface.__flag_get_current = 1;
-			interface.current_pos = currentState.base_pos;
-			interface.current_pos.z() = 0.0;
+			interface.current_state = currentState;
+			// interface.current_pos = currentState.base_pos;
+			interface.current_pos = Eigen::Vector3f(0,0,0);
+			// interface.current_pos.z() = 0.0;
 			interface.current_yaw = getYawDegrees(currentState.base_quat);
 		}
 

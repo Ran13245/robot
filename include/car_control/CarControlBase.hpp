@@ -107,5 +107,13 @@ namespace WHU_ROBOT{
 		return delta.norm();
 	}
 
+	inline Eigen::Vector3f transformWorldToBody(
+		const Eigen::Vector3f& T_wb,               // 机器人位置
+		const Eigen::Quaternionf& Q_wb,            // 机器人朝向（世界系下）
+		const Eigen::Vector3f& P_w)                // 目标点在世界系下
+	    {
+		return Q_wb.inverse() * (P_w - T_wb);
+	    }
+
 
 };//namespace WHU_ROBOT
