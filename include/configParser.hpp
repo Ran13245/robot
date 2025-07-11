@@ -50,7 +50,8 @@ public:
 	std::string image_local_ip;
 	int image_local_port;
 
-	std::string arm_unix_channel;
+	std::string arm_unix_channel_station;
+	std::string arm_unix_channel_solve;
 
 	param_t(const std::string& filename){
 		try {
@@ -97,7 +98,9 @@ public:
 			image_local_ip = config["image_local_ip"].as<std::string>();
 			image_local_port = config["image_local_port"].as<int>();
 
-			arm_unix_channel = config["arm_unix_channel"].as<std::string>();
+			arm_unix_channel_station = config["arm_unix_channel_station"].as<std::string>();
+			arm_unix_channel_solve = config["arm_unix_channel_solve"].as<std::string>();
+
 
 
 		} catch (const YAML::Exception& e) {
