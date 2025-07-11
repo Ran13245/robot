@@ -117,8 +117,8 @@ namespace WHU_ROBOT {
 				recv_mq_local_odom);
 		local_channel_carcmd_snd.bind_message_queue("whole_body_sender", ParserType::Sender, 
 				send_mq_local_carcmd);
-		local_channel_arm.bind_message_queue("nav_state_sender", ParserType::Sender, send_mq_local_arm);
-		local_channel_arm.bind_message_queue("whole_body_receiver", ParserType::Receiver, recv_mq_local_arm);
+		local_channel_arm.bind_message_queue("nav_state_receiver", ParserType::Receiver, recv_mq_local_arm);
+		local_channel_arm.bind_message_queue("whole_body_sender", ParserType::Sender, send_mq_local_arm);
 
 		while(!remote_channel.enable_receiver()){std::cout<<"1"<<std::endl;}
 		while(!remote_channel.enable_sender()){std::cout<<"2"<<std::endl;}
