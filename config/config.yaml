@@ -46,3 +46,6 @@ image_remote_ip: 127.0.0.1
 image_remote_port: 50007
 image_local_ip: 127.0.0.1
 image_local_port: 50008
+
+#arm
+arm_unix_channel: /workspace/tmp/arm

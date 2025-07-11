@@ -50,6 +50,8 @@ public:
 	std::string image_local_ip;
 	int image_local_port;
 
+	std::string arm_unix_channel;
+
 	param_t(const std::string& filename){
 		try {
 			YAML::Node config = YAML::LoadFile(filename);
@@ -94,6 +96,9 @@ public:
 			image_remote_port = config["image_remote_port"].as<int>();
 			image_local_ip = config["image_local_ip"].as<std::string>();
 			image_local_port = config["image_local_port"].as<int>();
+
+			arm_unix_channel = config["arm_unix_channel"].as<std::string>();
+
 
 		} catch (const YAML::Exception& e) {
 			throw std::runtime_error("Error parsing configuration file: " + std::string(e.what()));
