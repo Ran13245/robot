@@ -39,3 +39,10 @@ merge_local_port: 54321
 # state msg
 state_msg_sync_enable: /state/sync_enable
 state_msg_car_control_enable: /state/car_control_enable
+
+
+#image
+image_remote_ip: 127.0.0.1
+image_remote_port: 50007
+image_local_ip: 127.0.0.1
+image_local_port: 50008

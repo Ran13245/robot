@@ -45,6 +45,11 @@ public:
 	std::string state_msg_sync_enable;
 	std::string state_msg_car_control_enable;
 
+	std::string image_remote_ip;
+	int image_remote_port;
+	std::string image_local_ip;
+	int image_local_port;
+
 	param_t(const std::string& filename){
 		try {
 			YAML::Node config = YAML::LoadFile(filename);
@@ -84,6 +89,11 @@ public:
 
 			state_msg_sync_enable = config["state_msg_sync_enable"].as<std::string>();
 			state_msg_car_control_enable = config["state_msg_car_control_enable"].as<std::string>();
+
+			image_remote_ip = config["image_remote_ip"].as<std::string>();
+			image_remote_port = config["image_remote_port"].as<int>();
+			image_local_ip = config["image_local_ip"].as<std::string>();
+			image_local_port = config["image_local_port"].as<int>();
 
 		} catch (const YAML::Exception& e) {
 			throw std::runtime_error("Error parsing configuration file: " + std::string(e.what()));
