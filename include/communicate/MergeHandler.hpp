@@ -146,13 +146,13 @@ namespace WHU_ROBOT {
 	inline void MergeHandler<Mode>::exec(void){
 		// std::cout << "DEBUG:---------------------"<<recv_mq.size()<<std::endl;
 
-		static nav_state_msg recv_odom;
-		static nav_state_msg recv_arm;
+		static nav_state_msg recv_odom{};
+		static nav_state_msg recv_arm{};
 		 whole_body_msg recv_remote_data;
 		 nav_state_msg merged_msg;
 
 		static bool get_local_odom = 0;
-		static bool get_local_arm = 0;
+		static bool get_local_arm = 1;
 		
 		if(!recv_mq_local_odom.empty()){
 			if(recv_mq_local_odom.dequeue(recv_odom))

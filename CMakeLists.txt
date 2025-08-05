@@ -16,6 +16,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++20 -pthread -fexceptions")
 add_definitions(-DEIGEN_DONT_ALIGN_STATICALLY)
+
+set(BOOST_ROOT "/usr/local/boost_1_88_0")
+set(BOOST_INCLUDEDIR "${BOOST_ROOT}/include")
+set(BOOST_LIBRARYDIR "${BOOST_ROOT}/lib")
+
+find_package(Boost 1.88.0 REQUIRED)
+
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   nav_msgs
