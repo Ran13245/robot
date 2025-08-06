@@ -55,6 +55,7 @@ private:
 	param_t param;
 	ros::Subscriber cloud_sub;
 	ros::Subscriber odom_sub;
+	Eigen::Vector3f current_pos{};
 
 	PointCloudExporter cloud_exporter;
 	OdomExporter<ChannelMode::Unix> odom_exporter;
@@ -92,14 +93,13 @@ inline void SLAMROSHandler::cloudCallback(const sensor_msgs::PointCloud2ConstPtr
 	
 	auto t0 = std::chrono::steady_clock::now();
 
-	cloud_exporter.addPoints(cloud);
+	cloud_exporter.addPoints(cloud,current_pos);
 	
 	auto t1 = std::chrono::steady_clock::now();
 	ROS_INFO("Added points to exporter in %.3f ms", std::chrono::duration<double, std::milli>(t1 - t0).count());
 }
 
 inline void SLAMROSHandler::odomCallback(const nav_msgs::OdometryConstPtr& msg){
-if(param.enable_odom_trans){
 		// 1. 从 ROS 消息头提取时间戳（单位：秒 + 纳秒），转换为 uint64_t 纳秒
 	uint64_t sec  = static_cast<uint64_t>(msg->header.stamp.sec);
 	uint64_t nsec = static_cast<uint64_t>(msg->header.stamp.nsec);
@@ -110,6 +110,7 @@ if(param.enable_odom_trans){
 	base_pos.x() = static_cast<float>(msg->pose.pose.position.x);
 	base_pos.y() = static_cast<float>(msg->pose.pose.position.y);
 	base_pos.z() = static_cast<float>(msg->pose.pose.position.z);
+	current_pos = base_pos;
 
 	// 3. 提取基础朝向（base_quat）：ROS 中 quaternion 为 (x, y, z, w)，
 	//    Eigen::Quaternionf 构造时参数顺序为 (w, x, y, z)
@@ -120,6 +121,8 @@ if(param.enable_odom_trans){
 		static_cast<float>(q.y),
 		static_cast<float>(q.z)
 	);
+
+if(param.enable_odom_trans){
 
 	// 4. 调用 OdomExporter，将提取到的 time、position、quaternion 传入
 	odom_exporter.addOdom(time_ns, base_pos, base_quat);
