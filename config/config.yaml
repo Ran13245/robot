@@ -50,3 +50,11 @@ image_local_port: 50008
 #arm
 arm_unix_channel_station: /workspace/tmp/arm_station
 arm_unix_channel_solve: /workspace/tmp/arm_solve
+
+
+#camera
+enable_camera_trans: true
+camera_remote_ip: 127.0.0.1
+camera_remote_port: 50007
+camera_local_ip: 127.0.0.1
+camera_local_port: 50008

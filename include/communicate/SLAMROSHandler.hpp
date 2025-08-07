@@ -19,6 +19,7 @@
 #include "configParser.hpp"
 #include "PointCloudExporter.hpp"
 #include "OdomExporter.hpp"
+#include "CameraExporter.hpp"
 
 #include "comm_channel.hpp"
 
@@ -33,7 +34,8 @@ public:
 		nh{_nh}, 
 		param{_param},
 		odom_exporter{param},
-		cloud_exporter{param}
+		cloud_exporter{param},
+		camera_exporter{param}
 	{
 		std::cout<<"SLAMROSHandler constructing"<<std::endl;
 		cloud_sub = nh.subscribe<sensor_msgs::PointCloud2>(param.cloud_topic, 10, &SLAMROSHandler::cloudCallback, this);
@@ -41,6 +43,8 @@ public:
 
 		state_msg_sync_sub = nh.subscribe<std_msgs::Bool>(param.state_msg_sync_enable, 10,
 			 &SLAMROSHandler::stateOdomSyncCallback, this);
+
+		camera_sub = nh.subscribe<sensor_msgs::PointCloud2>("/camera/depth_registered/points", 10, &SLAMROSHandler::cameraCallback, this);
 	}
 
 	~SLAMROSHandler() {
@@ -56,15 +60,19 @@ private:
 	ros::Subscriber cloud_sub;
 	ros::Subscriber odom_sub;
 	Eigen::Vector3f current_pos{};
+	Eigen::Matrix3f current_rot= Eigen::Matrix3f::Identity();
+	ros::Subscriber camera_sub;
 
 	PointCloudExporter cloud_exporter;
 	OdomExporter<ChannelMode::Unix> odom_exporter;
+	CameraExporter camera_exporter;
 
 	ros::Subscriber state_msg_sync_sub;
 
 	void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg);
 	void odomCallback(const nav_msgs::OdometryConstPtr& msg);
 	void stateOdomSyncCallback(const std_msgs::Bool::ConstPtr& msg);
+	void cameraCallback(const sensor_msgs::PointCloud2ConstPtr& msg);
 };
 
 inline void SLAMROSHandler::stateOdomSyncCallback(const std_msgs::Bool::ConstPtr& msg){
@@ -74,13 +82,30 @@ inline void SLAMROSHandler::stateOdomSyncCallback(const std_msgs::Bool::ConstPtr
 inline void SLAMROSHandler::init(void){
 	cloud_exporter.init();
 	odom_exporter.init();
+	camera_exporter.init();
 }
 
 inline void SLAMROSHandler::stop(void){
 	cloud_exporter.stop();
 	odom_exporter.stop();
+	camera_exporter.stop();
 	ROS_INFO("Saving point cloud data to binary file: %s", param.cloud_export_path.c_str());
 	cloud_exporter.saveToBinaryFile(param.cloud_export_path,4);
+}
+
+inline void SLAMROSHandler::cameraCallback(const sensor_msgs::PointCloud2ConstPtr& msg){
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+
+	pcl::fromROSMsg(*msg, *cloud);
+
+	ROS_INFO("Received camera cloud with %zu points", cloud->size());
+	
+	auto t0 = std::chrono::steady_clock::now();
+
+	camera_exporter.addPoints(cloud,current_pos, current_rot);
+	
+	auto t1 = std::chrono::steady_clock::now();
+	ROS_INFO("Added camera points to exporter in %.3f ms", std::chrono::duration<double, std::milli>(t1 - t0).count());
 }
 
 inline void SLAMROSHandler::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg){
@@ -121,6 +146,7 @@ inline void SLAMROSHandler::odomCallback(const nav_msgs::OdometryConstPtr& msg){
 		static_cast<float>(q.y),
 		static_cast<float>(q.z)
 	);
+	current_rot = base_quat.toRotationMatrix();
 
 if(param.enable_odom_trans){
 

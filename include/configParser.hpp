@@ -53,6 +53,12 @@ public:
 	std::string arm_unix_channel_station;
 	std::string arm_unix_channel_solve;
 
+	bool enable_camera_trans;
+	std::string camera_remote_ip;
+	int camera_remote_port;
+	std::string camera_local_ip;
+	int camera_local_port;
+
 	param_t(const std::string& filename){
 		try {
 			YAML::Node config = YAML::LoadFile(filename);
@@ -101,7 +107,11 @@ public:
 			arm_unix_channel_station = config["arm_unix_channel_station"].as<std::string>();
 			arm_unix_channel_solve = config["arm_unix_channel_solve"].as<std::string>();
 
-
+			enable_bin_save = config["enable_camera_trans"].as<bool>();
+			image_remote_ip = config["camera_remote_ip"].as<std::string>();
+			image_remote_port = config["camera_remote_port"].as<int>();
+			image_local_ip = config["camera_local_ip"].as<std::string>();
+			image_local_port = config["camera_local_port"].as<int>();
 
 		} catch (const YAML::Exception& e) {
 			throw std::runtime_error("Error parsing configuration file: " + std::string(e.what()));
